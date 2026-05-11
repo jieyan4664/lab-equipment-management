@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>实验室设备管理系统</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    /* ===== 全局重置 ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --info: #0891b2;
+      --sidebar-w: 220px;
+      --header-h: 60px;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-sub: #64748b;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,.10);
+    }
+    body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
+
+    /* ===== 侧边栏 ===== */
+    #sidebar {
+      width: var(--sidebar-w); background: #0f172a; color: #cbd5e1;
+      display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; overflow-y: auto;
+      transition: width .25s;
+    }
+    .sidebar-logo {
+      height: var(--header-h); display: flex; align-items: center; gap: 10px;
+      padding: 0 18px; border-bottom: 1px solid #1e293b;
+      font-size: 15px; font-weight: 700; color: #f8fafc; white-space: nowrap;
+    }
+    .sidebar-logo span.icon { font-size: 22px; }
+    .sidebar-section { padding: 14px 0 4px 18px; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: .8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+      cursor: pointer; border-radius: 0; transition: background .15s, color .15s;
+      white-space: nowrap; font-size: 13.5px;
+    }
+    .nav-item:hover { background: #1e293b; color: #f1f5f9; }
+    .nav-item.active { background: var(--primary); color: #fff; }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-badge {
+      margin-left: auto; background: var(--danger); color: #fff;
+      border-radius: 10px; font-size: 11px; padding: 1px 6px; min-width: 18px; text-align: center;
+    }
+
+    /* ===== 主内容区 ===== */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ===== 顶部栏 ===== */
+    #topbar {
+      height: var(--header-h); background: var(--card); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px; flex-shrink: 0;
+      box-shadow: var(--shadow);
+    }
+    .topbar-title { font-size: 16px; font-weight: 600; color: var(--text); flex: 1; }
+    .topbar-search {
+      display: flex; align-items: center; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px; gap: 8px; width: 240px;
+    }
+    .topbar-search input { border: none; background: transparent; outline: none; font-size: 13px; width: 100%; color: var(--text); }
+    .topbar-btns { display: flex; align-items: center; gap: 12px; }
+    .topbar-btn { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-sub); position: relative; padding: 4px; }
+    .topbar-btn .dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; border: 2px solid #fff; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    /* ===== 内容页面 ===== */
+    #content { flex: 1; overflow-y: auto; padding: 24px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== 通用卡片 ===== */
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title .ct-icon { font-size: 17px; }
+
+    /* ===== 统计卡片 ===== */
+    .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--card); border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); display: flex; align-items: center; gap: 16px;
+    }
+    .stat-icon {
+      width: 52px; height: 52px; border-radius: 12px; display: flex;
+      align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
+    }
+    .stat-icon.blue { background: #dbeafe; }
+    .stat-icon.green { background: #dcfce7; }
+    .stat-icon.orange { background: #ffedd5; }
+    .stat-icon.red { background: #fee2e2; }
+    .stat-info h3 { font-size: 24px; font-weight: 700; color: var(--text); }
+    .stat-info p { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .stat-trend { margin-top: 4px; font-size: 11px; }
+    .stat-trend.up { color: var(--danger); }
+    .stat-trend.down { color: var(--success); }
+
+    /* ===== 图表区 ===== */
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .charts-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .chart-box { height: 280px; }
+
+    /* ===== 表格 ===== */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: #f8fafc; color: var(--text-sub); font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: var(--text); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8fafc; }
+
+    /* ===== 标签 ===== */
+    .badge {
+      display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 500; white-space: nowrap;
+    }
+    .badge-success { background: #dcfce7; color: var(--success); }
+    .badge-warning { background: #fef3c7; color: var(--warning); }
+    .badge-danger { background: #fee2e2; color: var(--danger); }
+    .badge-info { background: #e0f2fe; color: var(--info); }
+    .badge-gray { background: #f1f5f9; color: var(--text-sub); }
+    .badge-primary { background: #dbeafe; color: var(--primary); }
+
+    /* ===== 按钮 ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px;
+      border-radius: 7px; border: none; cursor: pointer; font-size: 13px; font-weight: 500;
+      transition: background .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 5px; }
+
+    /* ===== 工具栏 ===== */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .toolbar-left { display: flex; gap: 10px; flex: 1; }
+    .search-box {
+      display: flex; align-items: center; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 7px 12px; gap: 7px;
+    }
+    .search-box input { border: none; background: transparent; outline: none; font-size: 13px; width: 180px; }
+    select.filter-select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+      padding: 7px 12px; font-size: 13px; color: var(--text); outline: none; cursor: pointer;
+    }
+
+    /* ===== 进度条 ===== */
+    .progress-bar { background: #e2e8f0; border-radius: 4px; height: 6px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+
+    /* ===== 设备卡片网格 ===== */
+    .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .device-card {
+      background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+      border: 1px solid var(--border); transition: box-shadow .2s, transform .2s; cursor: pointer;
+    }
+    .device-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .device-card-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .device-img { width: 48px; height: 48px; border-radius: 10px; background: linear-gradient(135deg,#dbeafe,#bfdbfe); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .device-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .device-model { font-size: 12px; color: var(--text-sub); }
+    .device-card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .device-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); }
+
+    /* ===== 日历 ===== */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-head { text-align: center; font-size: 12px; color: var(--text-sub); padding: 6px 0; font-weight: 600; }
+    .cal-day {
+      aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: 6px; border-radius: 8px; cursor: pointer; border: 1px solid transparent;
+      font-size: 12px; transition: background .15s;
+    }
+    .cal-day:hover { background: var(--primary-light); border-color: var(--primary); }
+    .cal-day.today { background: var(--primary); color: #fff; }
+    .cal-day.has-event { border-color: var(--warning); }
+    .cal-day .day-num { font-weight: 600; margin-bottom: 2px; font-size: 13px; }
+    .cal-dot { width: 5px; height: 5px; border-radius: 50%; margin: 1px; }
+
+    /* ===== 表单 ===== */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 13px; color: var(--text-sub); font-weight: 500; }
+    input[type=text], input[type=date], input[type=number], textarea, select {
+      border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px;
+      font-size: 13px; outline: none; color: var(--text); background: var(--card); width: 100%;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* ===== 模态框 ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(3px);
+      z-index: 1000; display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card); border-radius: 14px; padding: 28px; width: 560px; max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2); max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text-sub); padding: 4px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+    /* ===== 时间线 ===== */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .tl-item { position: relative; margin-bottom: 20px; }
+    .tl-dot { position: absolute; left: -24px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--card); top: 2px; }
+    .tl-dot.blue { background: var(--primary); }
+    .tl-dot.green { background: var(--success); }
+    .tl-dot.orange { background: var(--warning); }
+    .tl-dot.red { background: var(--danger); }
+    .tl-time { font-size: 11px; color: var(--text-sub); margin-bottom: 3px; }
+    .tl-content { font-size: 13px; }
+
+    /* ===== 危险等级色条 ===== */
+    .level-bar { display: flex; gap: 4px; align-items: center; }
+    .level-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ===== 通知面板 ===== */
+    .notif-list .notif-item {
+      display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .notif-body p { font-size: 13px; margin-bottom: 3px; }
+    .notif-body span { font-size: 11px; color: var(--text-sub); }
+    .notif-unread .notif-body p { font-weight: 600; }
+
+    /* ===== 权限矩阵 ===== */
+    .matrix-table th:first-child, .matrix-table td:first-child { width: 140px; white-space: nowrap; }
+    .check-cell { text-align: center; font-size: 16px; }
+    .check-y { color: var(--success); }
+    .check-n { color: var(--border); }
+    .check-p { color: var(--warning); }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 900px) {
+      .stat-grid { grid-template-columns: repeat(2,1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
+      .charts-grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ===== 标签页 ===== */
+    .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+    .tab-btn {
+      padding: 10px 20px; font-size: 13.5px; cursor: pointer; border: none; background: none;
+      color: var(--text-sub); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ===== 状态指示灯 ===== */
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+    .status-dot.green { background: var(--success); }
+    .status-dot.orange { background: var(--warning); }
+    .status-dot.red { background: var(--danger); }
+    .status-dot.gray { background: var(--text-sub); }
+
+    /* ===== 加载动画 ===== */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .skeleton { background: #e2e8f0; border-radius: 4px; animation: pulse 1.5s ease-in-out infinite; }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ===================== 侧边栏 ===================== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <span class="icon">🔬</span>
+    <span>实验室管理系统</span>
+  </div>
+
+  <div class="sidebar-section">概览</div>
+  <div class="nav-item active" data-page="dashboard">
+    <span class="nav-icon">📊</span>数据看板
+  </div>
+
+  <div class="sidebar-section">设备管理</div>
+  <div class="nav-item" data-page="equipment">
+    <span class="nav-icon">🧪</span>设备档案
+  </div>
+  <div class="nav-item" data-page="borrow">
+    <span class="nav-icon">📅</span>借用预约
+    <span class="nav-badge">3</span>
+  </div>
+  <div class="nav-item" data-page="maintain">
+    <span class="nav-icon">🔧</span>维护保养
+    <span class="nav-badge">2</span>
+  </div>
+
+  <div class="sidebar-section">库存安全</div>
+  <div class="nav-item" data-page="inventory">
+    <span class="nav-icon">🗂️</span>耗材库存
+  </div>
+  <div class="nav-item" data-page="hazardous">
+    <span class="nav-icon">⚠️</span>危化品管控
+  </div>
+  <div class="nav-item" data-page="safety">
+    <span class="nav-icon">🛡️</span>安全管理
+  </div>
+
+  <div class="sidebar-section">系统</div>
+  <div class="nav-item" data-page="users">
+    <span class="nav-icon">👥</span>用户权限
+  </div>
+  <div class="nav-item" data-page="logs">
+    <span class="nav-icon">📋</span>操作日志
+  </div>
+  <div class="nav-item" data-page="notify">
+    <span class="nav-icon">🔔</span>消息通知
+    <span class="nav-badge">5</span>
+  </div>
+</nav>
+
+<!-- ===================== 主区域 ===================== -->
+<div id="main">
+  <!-- 顶部栏 -->
+  <header id="topbar">
+    <div class="topbar-title" id="page-title">数据看板</div>
+    <div class="topbar-search">
+      <span>🔍</span>
+      <input type="text" placeholder="搜索设备、编号、实验室…" />
+    </div>
+    <div class="topbar-btns">
+      <button class="topbar-btn" onclick="showPage('notify')">
+        🔔<span class="dot"></span>
+      </button>
+      <div class="avatar" title="管理员">管</div>
+    </div>
+  </header>
+
+  <!-- 内容区 -->
+  <div id="content">
+
+    <!-- ============================== 数据看板 ============================== -->
+    <div class="page active" id="page-dashboard">
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">🧪</div>
+          <div class="stat-info">
+            <h3>386</h3>
+            <p>设备总数</p>
+            <div class="stat-trend up">↑ 较上月 +12</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info">
+            <h3>312</h3>
+            <p>正常在用</p>
+            <div class="stat-trend down">使用率 80.8%</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">📋</div>
+          <div class="stat-info">
+            <h3>47</h3>
+            <p>本月借用次数</p>
+            <div class="stat-trend up">↑ 较上月 +8</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">🔧</div>
+          <div class="stat-info">
+            <h3>9</h3>
+            <p>待处理报修</p>
+            <div class="stat-trend up">↑ 紧急 3 件</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📈</span>近 6 个月设备借用趋势</div>
+          <div id="chart-trend" class="chart-box"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🥧</span>设备状态分布</div>
+          <div id="chart-status" class="chart-box"></div>
+        </div>
+      </div>
+
+      <div class="charts-grid-3">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🏆</span>故障频次 Top5</div>
+          <div id="chart-fault" class="chart-box"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">💰</span>维护费用走势（万元）</div>
+          <div id="chart-cost" class="chart-box"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🌡️</span>各实验室资产总值（万元）</div>
+          <div id="chart-assets" class="chart-box"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">⏰</span>近期待办事项</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot orange"></div>
+              <div class="tl-time">今日 15:00</div>
+              <div class="tl-content">高压灭菌锅定期保养提醒 <span class="badge badge-warning">待处理</span></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot red"></div>
+              <div class="tl-time">今日 11:00</div>
+              <div class="tl-content">气相色谱仪报修单 #M024 待审批 <span class="badge badge-danger">紧急</span></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot blue"></div>
+              <div class="tl-time">明日 09:00</div>
+              <div class="tl-content">学生李明 申请借用离心机 —— 待审批 <span class="badge badge-info">审批中</span></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot green"></div>
+              <div class="tl-time">05-14</div>
+              <div class="tl-content">盐酸库存量临期检查 <span class="badge badge-success">已安排</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📦</span>库存预警（低于安全库存）</div>
+          <table>
+            <thead>
+              <tr><th>耗材名称</th><th>当前库存</th><th>安全库存</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>乙醇（分析纯）</td>
+                <td>800 ml</td>
+                <td>2000 ml</td>
+                <td><span class="badge badge-danger">严重不足</span></td>
+              </tr>
+              <tr>
+                <td>一次性手套（L）</td>
+                <td>45 副</td>
+                <td>100 副</td>
+                <td><span class="badge badge-warning">低库存</span></td>
+              </tr>
+              <tr>
+                <td>培养皿 φ90</td>
+                <td>32 个</td>
+                <td>50 个</td>
+                <td><span class="badge badge-warning">低库存</span></td>
+              </tr>
+              <tr>
+                <td>蒸馏水（5L）</td>
+                <td>6 桶</td>
+                <td>10 桶</td>
+                <td><span class="badge badge-warning">低库存</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 设备档案 ============================== -->
+    <div class="page" id="page-equipment">
+      <div class="card" style="margin-bottom:16px">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索设备名称/编号…" /></div>
+            <select class="filter-select">
+              <option>全部类型</option>
+              <option>分析仪器</option>
+              <option>生物设备</option>
+              <option>化学设备</option>
+              <option>通用设备</option>
+            </select>
+            <select class="filter-select">
+              <option>全部状态</option>
+              <option>正常</option>
+              <option>借出</option>
+              <option>维修中</option>
+              <option>报废</option>
+            </select>
+            <select class="filter-select">
+              <option>全部实验室</option>
+              <option>生物实验室 A101</option>
+              <option>化学实验室 B203</option>
+              <option>仪器分析室 C301</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-device')">＋ 新增设备</button>
+          <button class="btn btn-outline">📥 批量导入</button>
+          <button class="btn btn-outline">📤 导出</button>
+        </div>
+      </div>
+
+      <!-- 视图切换 -->
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-primary btn-sm" onclick="switchView('list')">☰ 列表视图</button>
+        <button class="btn btn-outline btn-sm" onclick="switchView('grid')">⊞ 卡片视图</button>
+      </div>
+
+      <!-- 列表视图 -->
+      <div id="equipment-list-view">
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" /></th>
+                  <th>设备编号</th>
+                  <th>设备名称</th>
+                  <th>类型</th>
+                  <th>所属实验室</th>
+                  <th>状态</th>
+                  <th>危险等级</th>
+                  <th>购置金额</th>
+                  <th>下次保养</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="equipment-tbody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+            <span style="font-size:13px;color:var(--text-sub)">共 386 条记录，显示 1-20</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-outline btn-sm">«</button>
+              <button class="btn btn-primary btn-sm">1</button>
+              <button class="btn btn-outline btn-sm">2</button>
+              <button class="btn btn-outline btn-sm">3</button>
+              <button class="btn btn-outline btn-sm">»</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 卡片视图（隐藏） -->
+      <div id="equipment-grid-view" style="display:none">
+        <div class="device-grid" id="device-card-grid"></div>
+      </div>
+    </div>
+
+    <!-- ============================== 借用预约 ============================== -->
+    <div class="page" id="page-borrow">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'borrow-tab')">📅 预约日历</button>
+        <button class="tab-btn" onclick="switchTab(this,'borrow-tab')">📋 借用申请</button>
+        <button class="tab-btn" onclick="switchTab(this,'borrow-tab')">⏳ 待审批 (3)</button>
+        <button class="tab-btn" onclick="switchTab(this,'borrow-tab')">📜 历史记录</button>
+      </div>
+
+      <div class="tab-pane active" id="borrow-tab-0">
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:16px">
+          <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+              <span><span class="ct-icon">📅</span>2026年5月</span>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-outline btn-sm">◀ 上月</button>
+                <button class="btn btn-outline btn-sm">今天</button>
+                <button class="btn btn-outline btn-sm">下月 ▶</button>
+              </div>
+            </div>
+            <div class="calendar-grid" id="cal-grid"></div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-title"><span class="ct-icon">📌</span>今日预约（5月11日）</div>
+              <div style="display:flex;flex-direction:column;gap:10px" id="today-borrows"></div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="ct-icon">⚡</span>快速申请</div>
+              <div class="form-group" style="margin-bottom:12px">
+                <label>选择设备</label>
+                <select><option>-- 请选择设备 --</option><option>离心机 EQ-0023</option><option>分光光度计 EQ-0045</option><option>显微镜 EQ-0067</option></select>
+              </div>
+              <div class="form-group" style="margin-bottom:12px">
+                <label>借用时间</label>
+                <input type="date" value="2026-05-12"/>
+              </div>
+              <div class="form-group" style="margin-bottom:12px">
+                <label>使用目的</label>
+                <input type="text" placeholder="请简述使用目的…"/>
+              </div>
+              <button class="btn btn-primary" style="width:100%">提交申请</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="borrow-tab-1">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📝</span>新建借用申请</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>申请人</label>
+              <input type="text" value="张三（学生）" readonly/>
+            </div>
+            <div class="form-group">
+              <label>申请设备</label>
+              <select><option>离心机 EQ-0023 — 生物实验室</option></select>
+            </div>
+            <div class="form-group">
+              <label>借用开始时间</label>
+              <input type="date" value="2026-05-12"/>
+            </div>
+            <div class="form-group">
+              <label>预计归还时间</label>
+              <input type="date" value="2026-05-14"/>
+            </div>
+            <div class="form-group full">
+              <label>使用目的 / 实验方案</label>
+              <textarea placeholder="请详细描述使用目的及实验方案（高危设备必填）…"></textarea>
+            </div>
+            <div class="form-group">
+              <label>联系方式</label>
+              <input type="text" placeholder="手机号码"/>
+            </div>
+            <div class="form-group">
+              <label>紧急程度</label>
+              <select><option>普通</option><option>紧急</option></select>
+            </div>
+          </div>
+          <div class="modal-footer" style="padding-top:16px;margin-top:8px">
+            <button class="btn btn-outline">保存草稿</button>
+            <button class="btn btn-primary">提交申请</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="borrow-tab-2">
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>申请编号</th><th>申请人</th><th>设备</th><th>借用时间</th><th>使用目的</th><th>状态</th><th>操作</th></tr>
+              </thead>
+              <tbody id="pending-borrow-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="borrow-tab-3">
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索申请人/设备…"/></div>
+              <select class="filter-select"><option>全部状态</option><option>借用中</option><option>已归还</option><option>已拒绝</option></select>
+            </div>
+            <button class="btn btn-outline">📤 导出记录</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>编号</th><th>申请人</th><th>设备</th><th>借用时间</th><th>归还时间</th><th>状态</th><th>是否损坏</th></tr>
+              </thead>
+              <tbody id="history-borrow-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 维护保养 ============================== -->
+    <div class="page" id="page-maintain">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'maintain-tab')">🔧 报修单</button>
+        <button class="tab-btn" onclick="switchTab(this,'maintain-tab')">📅 保养计划</button>
+        <button class="tab-btn" onclick="switchTab(this,'maintain-tab')">📊 维护统计</button>
+      </div>
+
+      <div class="tab-pane active" id="maintain-tab-0">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索设备/编号…"/></div>
+            <select class="filter-select"><option>全部状态</option><option>待受理</option><option>维修中</option><option>已完成</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-repair')">＋ 提交报修</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>报修编号</th><th>设备名称</th><th>故障描述</th><th>报修人</th><th>报修时间</th><th>维修人员</th><th>状态</th><th>操作</th></tr>
+              </thead>
+              <tbody id="repair-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="maintain-tab-1">
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:16px">
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">📅</span>保养计划列表</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>设备名称</th><th>保养类型</th><th>计划日期</th><th>负责人</th><th>状态</th><th>操作</th></tr>
+                </thead>
+                <tbody id="maintain-plan-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">🔔</span>即将到期保养</div>
+            <div id="upcoming-maintain" style="display:flex;flex-direction:column;gap:12px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="maintain-tab-2">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">💰</span>2026年维护费用统计</div>
+            <div id="chart-maintain-cost" style="height:260px"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">📊</span>报修类型分布</div>
+            <div id="chart-repair-type" style="height:260px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 耗材库存 ============================== -->
+    <div class="page" id="page-inventory">
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-icon blue">📦</div><div class="stat-info"><h3>248</h3><p>耗材品种</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange">⚠️</div><div class="stat-info"><h3>12</h3><p>低库存预警</p></div></div>
+        <div class="stat-card"><div class="stat-icon red">📅</div><div class="stat-info"><h3>6</h3><p>临期耗材</p></div></div>
+        <div class="stat-card"><div class="stat-icon green">💹</div><div class="stat-info"><h3>¥28,400</h3><p>本月入库金额</p></div></div>
+      </div>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索耗材名称/编号…"/></div>
+          <select class="filter-select"><option>全部分类</option><option>试剂</option><option>玻璃器皿</option><option>防护用品</option><option>耗材配件</option></select>
+          <select class="filter-select"><option>全部状态</option><option>正常</option><option>低库存</option><option>临期</option></select>
+        </div>
+        <button class="btn btn-primary">＋ 入库登记</button>
+        <button class="btn btn-outline">📤 出库记录</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>编号</th><th>耗材名称</th><th>分类</th><th>规格</th><th>当前库存</th><th>安全库存</th><th>库存状态</th><th>有效期</th><th>位置</th><th>操作</th></tr>
+            </thead>
+            <tbody id="inventory-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 危化品管控 ============================== -->
+    <div class="page" id="page-hazardous">
+      <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:22px">⚠️</span>
+        <div>
+          <strong style="font-size:13.5px">危险化学品专项管控区域</strong>
+          <p style="font-size:12px;color:#92400e;margin-top:2px">所有危化品领用须经审批，操作须持证上岗，请严格遵守安全规范</p>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'haz-tab')">📋 危化品台账</button>
+        <button class="tab-btn" onclick="switchTab(this,'haz-tab')">📤 领用申请</button>
+        <button class="tab-btn" onclick="switchTab(this,'haz-tab')">📜 领用记录</button>
+      </div>
+
+      <div class="tab-pane active" id="haz-tab-0">
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <div class="search-box"><span>🔍</span><input type="text" placeholder="CAS号/名称搜索…"/></div>
+              <select class="filter-select"><option>全部危险类别</option><option>易燃液体</option><option>腐蚀品</option><option>氧化剂</option><option>毒害品</option></select>
+            </div>
+            <button class="btn btn-primary">＋ 新增登记</button>
+            <button class="btn btn-outline">🏷️ GHS标签打印</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>CAS号</th><th>化学品名称</th><th>危险类别</th><th>存量</th><th>存储位置</th><th>储存条件</th><th>领用上限</th><th>GHS标签</th><th>操作</th></tr>
+              </thead>
+              <tbody id="haz-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="haz-tab-1">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📝</span>危化品领用申请</div>
+          <div class="form-grid">
+            <div class="form-group"><label>申请人</label><input type="text" value="王五（实验员）" readonly/></div>
+            <div class="form-group"><label>所属实验室</label><select><option>化学实验室 B203</option></select></div>
+            <div class="form-group"><label>化学品名称</label><select><option>盐酸（36.5%）</option><option>乙醇（无水）</option><option>氢氧化钠</option></select></div>
+            <div class="form-group"><label>申请领用量</label><input type="number" placeholder="请输入数量"/></div>
+            <div class="form-group"><label>使用日期</label><input type="date" value="2026-05-12"/></div>
+            <div class="form-group"><label>用途说明</label><input type="text" placeholder="实验用途…"/></div>
+            <div class="form-group full"><label>实验方案（必填）</label><textarea placeholder="请详细描述实验方案，包括安全措施…"></textarea></div>
+          </div>
+          <div class="modal-footer"><button class="btn btn-primary">提交申请（需双审批）</button></div>
+        </div>
+      </div>
+      <div class="tab-pane" id="haz-tab-2">
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>申请单号</th><th>申请人</th><th>化学品</th><th>领用量</th><th>用途</th><th>审批人</th><th>时间</th><th>状态</th></tr></thead>
+              <tbody id="haz-record-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 安全管理 ============================== -->
+    <div class="page" id="page-safety">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'safety-tab')">🚨 安全事故</button>
+        <button class="tab-btn" onclick="switchTab(this,'safety-tab')">🎓 培训记录</button>
+        <button class="tab-btn" onclick="switchTab(this,'safety-tab')">✅ 安全检查</button>
+        <button class="tab-btn" onclick="switchTab(this,'safety-tab')">📋 进出记录</button>
+      </div>
+      <div class="tab-pane active" id="safety-tab-0">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索事故编号/实验室…"/></div>
+            <select class="filter-select"><option>全部级别</option><option>一般事故</option><option>较大事故</option><option>重大事故</option></select>
+          </div>
+          <button class="btn btn-danger">🚨 上报事故</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>事故编号</th><th>事故类型</th><th>发生实验室</th><th>发生时间</th><th>严重程度</th><th>处置人员</th><th>整改状态</th><th>操作</th></tr></thead>
+              <tbody id="safety-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="safety-tab-1">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🎓</span>安全培训记录</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>姓名</th><th>工号/学号</th><th>培训类型</th><th>培训日期</th><th>证书编号</th><th>有效期</th><th>状态</th></tr></thead>
+              <tbody id="training-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="safety-tab-2">
+        <div class="card">
+          <div class="toolbar">
+            <button class="btn btn-primary">＋ 新建检查单</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>检查编号</th><th>实验室</th><th>检查日期</th><th>检查人</th><th>检查项数</th><th>通过/不通过</th><th>整改项</th><th>状态</th></tr></thead>
+              <tbody id="inspection-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="safety-tab-3">
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>进出时间</th><th>姓名</th><th>实验室</th><th>类型</th><th>方式</th></tr></thead>
+              <tbody id="access-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 用户权限 ============================== -->
+    <div class="page" id="page-users">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'user-tab')">👥 用户管理</button>
+        <button class="tab-btn" onclick="switchTab(this,'user-tab')">🔑 角色权限矩阵</button>
+      </div>
+      <div class="tab-pane active" id="user-tab-0">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索姓名/工号…"/></div>
+            <select class="filter-select"><option>全部角色</option><option>学生</option><option>教师</option><option>实验室管理员</option><option>设备管理员</option><option>系统管理员</option></select>
+            <select class="filter-select"><option>全部状态</option><option>启用</option><option>禁用</option></select>
+          </div>
+          <button class="btn btn-primary">＋ 新增用户</button>
+          <button class="btn btn-outline">📤 导入用户</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th><input type="checkbox"/></th><th>姓名</th><th>工号/学号</th><th>角色</th><th>院系</th><th>联系方式</th><th>上次登录</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="user-tab-1">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🔑</span>角色权限矩阵</div>
+          <div class="table-wrap">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>功能模块 / 操作</th>
+                  <th style="text-align:center">学生</th>
+                  <th style="text-align:center">教师</th>
+                  <th style="text-align:center">实验室管理员</th>
+                  <th style="text-align:center">设备管理员</th>
+                  <th style="text-align:center">系统管理员</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--text-sub);display:flex;gap:20px">
+            <span>✅ 完全权限</span>
+            <span>🔶 部分权限</span>
+            <span>❌ 无权限</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 操作日志 ============================== -->
+    <div class="page" id="page-logs">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><span>🔍</span><input type="text" placeholder="搜索操作人/模块…"/></div>
+          <select class="filter-select"><option>全部模块</option><option>设备管理</option><option>借用管理</option><option>用户管理</option><option>危化品</option></select>
+          <input type="date" class="filter-select" value="2026-05-11"/>
+        </div>
+        <button class="btn btn-outline">📤 导出日志</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>日志ID</th><th>操作人</th><th>角色</th><th>模块</th><th>操作类型</th><th>操作内容</th><th>IP地址</th><th>时间</th></tr></thead>
+            <tbody id="logs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== 消息通知 ============================== -->
+    <div class="page" id="page-notify">
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:16px">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🔔</span>消息分类</div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="notif-categories"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="justify-content:space-between">
+            <span><span class="ct-icon">📬</span>全部消息</span>
+            <button class="btn btn-outline btn-sm">全部已读</button>
+          </div>
+          <div class="notif-list" id="notif-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #content -->
+</div><!-- end #main -->
+
+<!-- ============================== 模态框：新增设备 ============================== -->
+<div class="modal-overlay" id="modal-add-device">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🧪 新增设备</div>
+      <button class="modal-close" onclick="closeModal('modal-add-device')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>设备名称 *</label><input type="text" placeholder="请输入设备名称"/></div>
+      <div class="form-group"><label>设备编号</label><input type="text" placeholder="系统自动生成" readonly/></div>
+      <div class="form-group"><label>设备类型 *</label><select><option>分析仪器</option><option>生物设备</option><option>化学设备</option><option>通用设备</option></select></div>
+      <div class="form-group"><label>品牌</label><input type="text" placeholder="品牌名称"/></div>
+      <div class="form-group"><label>型号</label><input type="text" placeholder="具体型号"/></div>
+      <div class="form-group"><label>所属实验室 *</label><select><option>生物实验室 A101</option><option>化学实验室 B203</option><option>仪器分析室 C301</option></select></div>
+      <div class="form-group"><label>存放位置</label><input type="text" placeholder="楼层-房间号-柜位"/></div>
+      <div class="form-group"><label>购置日期</label><input type="date" value="2026-05-11"/></div>
+      <div class="form-group"><label>购置金额（元）</label><input type="number" placeholder="0"/></div>
+      <div class="form-group"><label>危险等级</label><select><option>无危险</option><option>低危</option><option>中危</option><option>高危</option></select></div>
+      <div class="form-group"><label>保养周期（天）</label><input type="number" placeholder="90"/></div>
+      <div class="form-group"><label>操作资质要求</label><select><option>无需资质</option><option>需持证上岗</option></select></div>
+      <div class="form-group full"><label>备注说明</label><textarea placeholder="其他说明…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add-device')">取消</button>
+      <button class="btn btn-primary">保存设备</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== 模态框：提交报修 ============================== -->
+<div class="modal-overlay" id="modal-repair">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔧 提交报修单</div>
+      <button class="modal-close" onclick="closeModal('modal-repair')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>报修设备 *</label><select><option>气相色谱仪 EQ-0089</option><option>离心机 EQ-0023</option><option>超声波清洗机 EQ-0112</option></select></div>
+      <div class="form-group"><label>故障发现时间</label><input type="date" value="2026-05-11"/></div>
+      <div class="form-group full"><label>故障描述 *</label><textarea placeholder="请详细描述故障现象…"></textarea></div>
+      <div class="form-group"><label>故障等级</label><select><option>一般故障</option><option>严重故障</option><option>紧急故障</option></select></div>
+      <div class="form-group"><label>联系人</label><input type="text" value="管理员"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-repair')">取消</button>
+      <button class="btn btn-primary">提交报修</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// 工具函数
+// ===========================
+const $ = id => document.getElementById(id);
+const pageTitles = {
+  dashboard:'数据看板', equipment:'设备档案管理', borrow:'借用与预约',
+  maintain:'维护保养管理', inventory:'耗材库存管理', hazardous:'危化品专项管控',
+  safety:'安全管理', users:'用户与权限管理', logs:'操作日志', notify:'消息通知中心'
+};
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const el = $('page-'+name);
+  if(el) el.classList.add('active');
+  const nav = document.querySelector(`.nav-item[data-page="${name}"]`);
+  if(nav) nav.classList.add('active');
+  $('page-title').textContent = pageTitles[name] || name;
+  setTimeout(()=>{ if(name==='dashboard') initCharts(); }, 50);
+  setTimeout(()=>{ if(name==='maintain') initMaintainCharts(); }, 50);
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => showPage(item.dataset.page));
+});
+
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('show'); });
+});
+
+function switchView(type) {
+  $('equipment-list-view').style.display = type==='list' ? 'block' : 'none';
+  $('equipment-grid-view').style.display = type==='grid' ? 'block' : 'none';
+}
+
+function switchTab(btn, prefix) {
+  const parent = btn.closest('.tabs');
+  const tabs = parent.querySelectorAll('.tab-btn');
+  const idx = Array.from(tabs).indexOf(btn);
+  tabs.forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // 找到对应 tab-pane
+  const panes = document.querySelectorAll(`[id^="${prefix}-"]`);
+  panes.forEach((p,i) => p.classList.toggle('active', i===idx));
+}
+
+// ===========================
+// 数据
+// ===========================
+const equipmentData = [
+  {id:'EQ-0023',name:'台式高速离心机',type:'生物设备',lab:'生物实验室 A101',status:'正常',level:'低危',price:'¥28,000',nextMaintain:'2026-06-10'},
+  {id:'EQ-0045',name:'紫外可见分光光度计',type:'分析仪器',lab:'仪器分析室 C301',status:'借出',level:'无危险',price:'¥45,000',nextMaintain:'2026-07-01'},
+  {id:'EQ-0067',name:'倒置荧光显微镜',type:'生物设备',lab:'生物实验室 A101',status:'正常',level:'低危',price:'¥320,000',nextMaintain:'2026-05-20'},
+  {id:'EQ-0089',name:'气相色谱仪（GC）',type:'分析仪器',lab:'化学实验室 B203',status:'维修中',level:'中危',price:'¥180,000',nextMaintain:'—'},
+  {id:'EQ-0112',name:'超声波细胞破碎仪',type:'生物设备',lab:'生物实验室 A101',status:'正常',level:'无危险',price:'¥12,000',nextMaintain:'2026-08-15'},
+  {id:'EQ-0134',name:'高压反应釜',type:'化学设备',lab:'化学实验室 B203',status:'正常',level:'高危',price:'¥65,000',nextMaintain:'2026-05-18'},
+  {id:'EQ-0156',name:'旋转蒸发仪',type:'化学设备',lab:'化学实验室 B203',status:'正常',level:'低危',price:'¥22,000',nextMaintain:'2026-09-01'},
+  {id:'EQ-0178',name:'高效液相色谱仪（HPLC）',type:'分析仪器',lab:'仪器分析室 C301',status:'正常',level:'中危',price:'¥280,000',nextMaintain:'2026-06-30'},
+];
+const statusBadge = {
+  '正常':'badge-success','借出':'badge-info','维修中':'badge-warning','报废':'badge-gray'
+};
+const levelBadge = {
+  '无危险':'badge-gray','低危':'badge-success','中危':'badge-warning','高危':'badge-danger'
+};
+const deviceEmoji = {'生物设备':'🧬','分析仪器':'🔬','化学设备':'⚗️','通用设备':'🔧'};
+
+function renderEquipmentTable() {
+  const tbody = $('equipment-tbody');
+  tbody.innerHTML = equipmentData.map(d => `
+    <tr>
+      <td><input type="checkbox"/></td>
+      <td><code style="font-size:12px;color:var(--primary)">${d.id}</code></td>
+      <td><strong>${d.name}</strong></td>
+      <td><span class="badge badge-primary">${d.type}</span></td>
+      <td>${d.lab}</td>
+      <td><span class="badge ${statusBadge[d.status]||'badge-gray'}">${d.status}</span></td>
+      <td><span class="badge ${levelBadge[d.level]||'badge-gray'}">${d.level}</span></td>
+      <td>${d.price}</td>
+      <td style="color:${d.nextMaintain==='—'?'var(--text-sub)':d.nextMaintain<'2026-05-25'?'var(--danger)':'var(--text)'}">${d.nextMaintain}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm">详情</button>
+        <button class="btn btn-outline btn-sm">编辑</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--danger)">报修</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderDeviceCards() {
+  const grid = $('device-card-grid');
+  grid.innerHTML = equipmentData.map(d => `
+    <div class="device-card">
+      <div class="device-card-header">
+        <div class="device-img">${deviceEmoji[d.type]||'🔬'}</div>
+        <div>
+          <div class="device-name">${d.name}</div>
+          <div class="device-model">${d.id}</div>
+        </div>
+      </div>
+      <div class="device-card-meta">
+        <span class="badge ${statusBadge[d.status]||'badge-gray'}">${d.status}</span>
+        <span class="badge ${levelBadge[d.level]||'badge-gray'}">${d.level}</span>
+        <span class="badge badge-primary">${d.type}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px">📍 ${d.lab}</div>
+      <div class="progress-bar" style="margin-bottom:8px">
+        <div class="progress-fill" style="width:${Math.random()*60+30|0}%;background:var(--primary)"></div>
+      </div>
+      <div class="device-card-footer">
+        <span style="font-size:12px;color:var(--text-sub)">下次保养 ${d.nextMaintain}</span>
+        <button class="btn btn-primary btn-sm">申请借用</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 借用数据
+const borrowData = [
+  {id:'BR-0241',applicant:'李明（学生）',device:'离心机 EQ-0023',time:'2026-05-12 ~ 05-14',purpose:'蛋白质提取实验',status:'审批中'},
+  {id:'BR-0240',applicant:'王芳（教师）',device:'HPLC EQ-0178',time:'2026-05-11 ~ 05-11',purpose:'药物分析课程',status:'审批中'},
+  {id:'BR-0239',applicant:'张宇（学生）',device:'显微镜 EQ-0067',time:'2026-05-13 ~ 05-13',purpose:'细胞形态观察',status:'审批中'},
+];
+function renderPendingBorrows(){
+  $('pending-borrow-tbody').innerHTML = borrowData.map(b=>`
+    <tr>
+      <td><code style="color:var(--primary);font-size:12px">${b.id}</code></td>
+      <td>${b.applicant}</td>
+      <td>${b.device}</td>
+      <td>${b.time}</td>
+      <td>${b.purpose}</td>
+      <td><span class="badge badge-info">${b.status}</span></td>
+      <td><button class="btn btn-success btn-sm">✓ 通过</button> <button class="btn btn-danger btn-sm">✗ 拒绝</button></td>
+    </tr>
+  `).join('');
+}
+const historyBorrow=[
+  {id:'BR-0238',applicant:'陈丽（学生）',device:'分光光度计 EQ-0045',start:'05-08',end:'05-10',status:'已归还',damaged:'否'},
+  {id:'BR-0237',applicant:'刘强（教师）',device:'GC EQ-0089',start:'05-06',end:'05-07',status:'借用中',damaged:'—'},
+  {id:'BR-0236',applicant:'孙燕（学生）',device:'超声破碎仪 EQ-0112',start:'05-05',end:'05-06',status:'已归还',damaged:'否'},
+];
+function renderHistoryBorrows(){
+  $('history-borrow-tbody').innerHTML = historyBorrow.map(b=>`
+    <tr>
+      <td><code style="color:var(--primary);font-size:12px">${b.id}</code></td>
+      <td>${b.applicant}</td><td>${b.device}</td>
+      <td>${b.start}</td><td>${b.end}</td>
+      <td><span class="badge ${b.status==='已归还'?'badge-success':'badge-info'}">${b.status}</span></td>
+      <td>${b.damaged}</td>
+    </tr>
+  `).join('');
+}
+
+// 报修数据
+const repairData=[
+  {id:'M-024',device:'气相色谱仪 EQ-0089',desc:'色谱柱温度异常，无法升温至设定值',reporter:'赵工（管理员）',time:'2026-05-10',engineer:'等待指派',status:'待受理'},
+  {id:'M-023',device:'离心机 EQ-0023',desc:'运行时有异响，疑似轴承磨损',reporter:'李明（学生）',time:'2026-05-09',engineer:'陈维修',status:'维修中'},
+  {id:'M-022',device:'超声波清洗机 EQ-0112',desc:'频率旋钮失灵',reporter:'王芳（教师）',time:'2026-05-07',engineer:'陈维修',status:'已完成'},
+];
+function renderRepairs(){
+  $('repair-tbody').innerHTML = repairData.map(r=>`
+    <tr>
+      <td><code style="color:var(--primary);font-size:12px">${r.id}</code></td>
+      <td>${r.device}</td><td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.desc}</td>
+      <td>${r.reporter}</td><td>${r.time}</td><td>${r.engineer}</td>
+      <td><span class="badge ${r.status==='已完成'?'badge-success':r.status==='维修中'?'badge-warning':'badge-danger'}">${r.status}</span></td>
+      <td><button class="btn btn-outline btn-sm">详情</button></td>
+    </tr>
+  `).join('');
+}
+
+const maintainPlan=[
+  {device:'高压反应釜 EQ-0134',type:'定期保养',date:'2026-05-18',owner:'赵工',status:'待处理'},
+  {device:'HPLC EQ-0178',type:'定期检定',date:'2026-06-30',owner:'李工',status:'已安排'},
+  {device:'倒置显微镜 EQ-0067',type:'清洁保养',date:'2026-05-20',owner:'赵工',status:'待处理'},
+];
+function renderMaintainPlan(){
+  $('maintain-plan-tbody').innerHTML=maintainPlan.map(m=>`
+    <tr>
+      <td>${m.device}</td><td>${m.type}</td><td>${m.date}</td><td>${m.owner}</td>
+      <td><span class="badge ${m.status==='已安排'?'badge-success':'badge-warning'}">${m.status}</span></td>
+      <td><button class="btn btn-outline btn-sm">完成</button></td>
+    </tr>
+  `).join('');
+  $('upcoming-maintain').innerHTML=maintainPlan.map(m=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
+      <div>
+        <div style="font-size:13px;font-weight:600">${m.device}</div>
+        <div style="font-size:11px;color:var(--text-sub)">${m.type} · ${m.date}</div>
+      </div>
+      <span class="badge ${m.status==='已安排'?'badge-success':'badge-warning'}">${m.status}</span>
+    </div>
+  `).join('');
+}
+
+// 库存数据
+const inventoryData=[
+  {id:'INV-001',name:'乙醇（分析纯）',cat:'试剂',spec:'500ml/瓶',stock:'800ml',safe:'2000ml',statusBadge:'badge-danger',statusTxt:'严重不足',expire:'2027-03-01',loc:'试剂柜A-3'},
+  {id:'INV-002',name:'一次性手套（L）',cat:'防护用品',spec:'100副/盒',stock:'45副',safe:'100副',statusBadge:'badge-warning',statusTxt:'低库存',expire:'—',loc:'耗材柜B-1'},
+  {id:'INV-003',name:'培养皿 φ90',cat:'玻璃器皿',spec:'个',stock:'32个',safe:'50个',statusBadge:'badge-warning',statusTxt:'低库存',expire:'—',loc:'玻璃柜C-2'},
+  {id:'INV-004',name:'磷酸盐缓冲液（PBS）',cat:'试剂',spec:'1L/瓶',stock:'15瓶',safe:'5瓶',statusBadge:'badge-success',statusTxt:'正常',expire:'2026-06-30',loc:'冷藏柜D-1'},
+  {id:'INV-005',name:'氮气（高纯）',cat:'气体',spec:'40L/瓶',stock:'3瓶',safe:'2瓶',statusBadge:'badge-success',statusTxt:'正常',expire:'—',loc:'气瓶间'},
+];
+function renderInventory(){
+  $('inventory-tbody').innerHTML=inventoryData.map(i=>`
+    <tr>
+      <td><code style="font-size:12px;color:var(--primary)">${i.id}</code></td>
+      <td><strong>${i.name}</strong></td><td>${i.cat}</td><td>${i.spec}</td>
+      <td><strong>${i.stock}</strong></td><td style="color:var(--text-sub)">${i.safe}</td>
+      <td><span class="badge ${i.statusBadge}">${i.statusTxt}</span></td>
+      <td>${i.expire}</td><td>${i.loc}</td>
+      <td><button class="btn btn-outline btn-sm">出库</button> <button class="btn btn-primary btn-sm">补货</button></td>
+    </tr>
+  `).join('');
+}
+
+// 危化品数据
+const hazData=[
+  {cas:'7647-01-0',name:'盐酸',hazcat:'腐蚀品 (GHS05)',stock:'2.5L',loc:'通风柜A-1',cond:'密封、通风',limit:'200ml/次',ghs:'🟠⚗️'},
+  {cas:'64-17-5',name:'乙醇（无水）',hazcat:'易燃液体 (GHS02)',stock:'3L',loc:'防爆柜B-2',cond:'防火、远离热源',limit:'500ml/次',ghs:'🔴🔥'},
+  {cas:'1310-73-2',name:'氢氧化钠',hazcat:'腐蚀品 (GHS05)',stock:'500g',loc:'化学柜C-1',cond:'防潮、密封',limit:'50g/次',ghs:'🟠'},
+  {cas:'7664-93-9',name:'浓硫酸（98%）',hazcat:'腐蚀品/氧化剂',stock:'1L',loc:'通风柜A-2',cond:'阴凉、防水',limit:'100ml/次',ghs:'🟠🔴'},
+];
+function renderHazardous(){
+  $('haz-tbody').innerHTML=hazData.map(h=>`
+    <tr>
+      <td><code style="font-size:11px">${h.cas}</code></td>
+      <td><strong>${h.name}</strong></td>
+      <td><span class="badge badge-danger">${h.hazcat}</span></td>
+      <td>${h.stock}</td><td>${h.loc}</td><td style="font-size:12px;color:var(--text-sub)">${h.cond}</td>
+      <td>${h.limit}</td><td style="font-size:18px">${h.ghs}</td>
+      <td><button class="btn btn-outline btn-sm">编辑</button></td>
+    </tr>
+  `).join('');
+  $('haz-record-tbody').innerHTML=`
+    <tr><td><code style="color:var(--primary);font-size:12px">HZ-031</code></td><td>王五（实验员）</td><td>盐酸</td><td>150ml</td><td>滴定实验</td><td>赵老师 / 管理员</td><td>2026-05-10</td><td><span class="badge badge-success">已批准</span></td></tr>
+    <tr><td><code style="color:var(--primary);font-size:12px">HZ-030</code></td><td>刘强（教师）</td><td>浓硫酸</td><td>80ml</td><td>有机合成</td><td>待审批</td><td>2026-05-11</td><td><span class="badge badge-warning">审批中</span></td></tr>
+  `;
+}
+
+// 安全事故
+const safetyData=[
+  {id:'SA-008',type:'化学品泄漏',lab:'化学实验室 B203',time:'2026-04-22',level:'一般',handler:'赵安全员',rectify:'已整改'},
+  {id:'SA-007',type:'设备烫伤',lab:'生物实验室 A101',time:'2026-03-15',level:'一般',handler:'李安全员',rectify:'已整改'},
+];
+function renderSafety(){
+  $('safety-tbody').innerHTML=safetyData.map(s=>`
+    <tr>
+      <td><code style="color:var(--primary);font-size:12px">${s.id}</code></td>
+      <td>${s.type}</td><td>${s.lab}</td><td>${s.time}</td>
+      <td><span class="badge ${s.level==='一般'?'badge-warning':'badge-danger'}">${s.level}事故</span></td>
+      <td>${s.handler}</td>
+      <td><span class="badge badge-success">${s.rectify}</span></td>
+      <td><button class="btn btn-outline btn-sm">详情</button></td>
+    </tr>
+  `).join('');
+  $('training-tbody').innerHTML=`
+    <tr><td>李明</td><td>S2024001</td><td>危化品安全操作培训</td><td>2025-09-10</td><td>CERT-24-089</td><td>2026-09-10</td><td><span class="badge badge-success">有效</span></td></tr>
+    <tr><td>王五</td><td>T2022015</td><td>特种设备操作资质</td><td>2024-06-01</td><td>CERT-24-156</td><td>2026-06-01</td><td><span class="badge badge-warning">即将到期</span></td></tr>
+    <tr><td>赵安全员</td><td>T2018003</td><td>实验室安全管理培训</td><td>2025-01-15</td><td>CERT-25-012</td><td>2027-01-15</td><td><span class="badge badge-success">有效</span></td></tr>
+  `;
+  $('inspection-tbody').innerHTML=`
+    <tr><td><code style="font-size:12px;color:var(--primary)">INS-045</code></td><td>化学实验室 B203</td><td>2026-05-08</td><td>赵安全员</td><td>24</td><td>22 / 2</td><td>2</td><td><span class="badge badge-warning">整改中</span></td></tr>
+    <tr><td><code style="font-size:12px;color:var(--primary)">INS-044</code></td><td>生物实验室 A101</td><td>2026-04-25</td><td>李安全员</td><td>20</td><td>20 / 0</td><td>0</td><td><span class="badge badge-success">已通过</span></td></tr>
+  `;
+  $('access-tbody').innerHTML=`
+    <tr><td>2026-05-11 14:32</td><td>王五</td><td>化学实验室 B203</td><td><span class="badge badge-success">进入</span></td><td>门禁刷卡</td></tr>
+    <tr><td>2026-05-11 13:50</td><td>李明</td><td>生物实验室 A101</td><td><span class="badge badge-success">进入</span></td><td>门禁刷卡</td></tr>
+    <tr><td>2026-05-11 12:20</td><td>王芳</td><td>仪器分析室 C301</td><td><span class="badge badge-gray">离开</span></td><td>门禁刷卡</td></tr>
+  `;
+}
+
+// 用户数据
+const userData=[
+  {name:'李明',id:'2024001',role:'学生',dept:'生命科学学院',phone:'138****8001',lastLogin:'今日 14:30',status:'启用'},
+  {name:'王芳',id:'T20180023',role:'教师',dept:'化学化工学院',phone:'139****9002',lastLogin:'今日 11:20',status:'启用'},
+  {name:'赵工',id:'L20200045',role:'实验室管理员',dept:'生物实验室 A101',phone:'137****7003',lastLogin:'今日 15:00',status:'启用'},
+  {name:'刘强',id:'D20150012',role:'设备管理员',dept:'实验设备管理中心',phone:'136****6004',lastLogin:'昨日 17:45',status:'启用'},
+  {name:'陈系统',id:'IT20100001',role:'系统管理员',dept:'IT运维中心',phone:'135****5005',lastLogin:'今日 09:00',status:'启用'},
+];
+const roleBadge={'学生':'badge-info','教师':'badge-primary','实验室管理员':'badge-warning','设备管理员':'badge-success','系统管理员':'badge-danger'};
+function renderUsers(){
+  $('users-tbody').innerHTML=userData.map(u=>`
+    <tr>
+      <td><input type="checkbox"/></td>
+      <td><strong>${u.name}</strong></td><td><code style="font-size:12px">${u.id}</code></td>
+      <td><span class="badge ${roleBadge[u.role]||'badge-gray'}">${u.role}</span></td>
+      <td>${u.dept}</td><td>${u.phone}</td><td>${u.lastLogin}</td>
+      <td><span class="status-dot green"></span>启用</td>
+      <td><button class="btn btn-outline btn-sm">编辑</button> <button class="btn btn-outline btn-sm">禁用</button></td>
+    </tr>
+  `).join('');
+
+  const matrix=[
+    ['设备档案 — 查看','✅','✅','✅','✅','✅'],
+    ['设备档案 — 新增/编辑','❌','🔶','✅','✅','✅'],
+    ['设备档案 — 删除/报废','❌','❌','🔶','✅','✅'],
+    ['借用 — 申请','✅','✅','✅','✅','✅'],
+    ['借用 — 审批','❌','✅','✅','✅','✅'],
+    ['维护 — 报修','✅','✅','✅','✅','✅'],
+    ['维护 — 派工/完成','❌','❌','✅','✅','✅'],
+    ['危化品 — 查看','❌','✅','✅','✅','✅'],
+    ['危化品 — 领用申请','❌','✅','✅','✅','✅'],
+    ['危化品 — 审批','❌','🔶','✅','✅','✅'],
+    ['安全 — 事故上报','✅','✅','✅','✅','✅'],
+    ['安全 — 检查管理','❌','❌','✅','✅','✅'],
+    ['用户 — 用户管理','❌','❌','❌','❌','✅'],
+    ['系统 — 参数配置','❌','❌','❌','❌','✅'],
+  ];
+  $('matrix-tbody').innerHTML=matrix.map(row=>`
+    <tr>
+      <td>${row[0]}</td>
+      ${row.slice(1).map(v=>`<td class="check-cell">${v}</td>`).join('')}
+    </tr>
+  `).join('');
+}
+
+// 操作日志
+function renderLogs(){
+  const logs=[
+    {id:'LOG-0892',user:'赵工',role:'实验室管理员',module:'设备管理',action:'编辑',content:'修改离心机 EQ-0023 状态为"维修中"',ip:'192.168.1.45',time:'2026-05-11 14:52'},
+    {id:'LOG-0891',user:'李明',role:'学生',module:'借用管理',action:'新增',content:'提交借用申请 BR-0241',ip:'192.168.1.102',time:'2026-05-11 14:30'},
+    {id:'LOG-0890',user:'陈系统',role:'系统管理员',module:'用户管理',action:'编辑',content:'修改用户王五角色为"实验室管理员"',ip:'192.168.1.10',time:'2026-05-11 14:15'},
+    {id:'LOG-0889',user:'王芳',role:'教师',module:'借用管理',action:'审批',content:'通过借用申请 BR-0240',ip:'192.168.1.78',time:'2026-05-11 13:50'},
+    {id:'LOG-0888',user:'刘强',role:'设备管理员',module:'危化品',action:'查看',content:'查看危化品台账列表',ip:'192.168.1.33',time:'2026-05-11 13:22'},
+  ];
+  $('logs-tbody').innerHTML=logs.map(l=>`
+    <tr>
+      <td><code style="font-size:12px;color:var(--primary)">${l.id}</code></td>
+      <td>${l.user}</td>
+      <td><span class="badge ${roleBadge[l.role]||'badge-gray'}">${l.role}</span></td>
+      <td>${l.module}</td>
+      <td><span class="badge badge-info">${l.action}</span></td>
+      <td style="max-width:220px;font-size:12px">${l.content}</td>
+      <td style="font-size:12px;color:var(--text-sub)">${l.ip}</td>
+      <td style="font-size:12px;color:var(--text-sub)">${l.time}</td>
+    </tr>
+  `).join('');
+}
+
+// 消息通知
+function renderNotify(){
+  $('notif-categories').innerHTML=`
+    <div style="padding:10px 12px;border-radius:7px;background:var(--primary);color:#fff;cursor:pointer;font-size:13px;display:flex;justify-content:space-between">全部消息<span>5</span></div>
+    <div style="padding:10px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;color:var(--text-sub)">借用审批<span class="badge badge-info">2</span></div>
+    <div style="padding:10px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;color:var(--text-sub)">维护提醒<span class="badge badge-warning">1</span></div>
+    <div style="padding:10px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;color:var(--text-sub)">库存预警<span class="badge badge-danger">2</span></div>
+    <div style="padding:10px 12px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--text-sub)">系统公告</div>
+  `;
+  const notifs=[
+    {icon:'📅',bg:'#dbeafe',title:'借用申请待审批',time:'10分钟前',content:'学生李明申请借用离心机 EQ-0023（2026-05-12至05-14），请及时处理',unread:true},
+    {icon:'⚠️',bg:'#fee2e2',title:'库存严重不足',time:'1小时前',content:'乙醇（分析纯）当前库存 800ml，低于安全库存 2000ml，请尽快补货',unread:true},
+    {icon:'🔧',bg:'#fef3c7',title:'保养任务提醒',time:'2小时前',content:'高压反应釜 EQ-0134 定期保养计划于 2026-05-18 执行，请提前准备',unread:true},
+    {icon:'📅',bg:'#dbeafe',title:'借用申请待审批',time:'今日 09:15',content:'教师王芳申请借用 HPLC EQ-0178（05-11全天），请及时处理',unread:true},
+    {icon:'📦',bg:'#fee2e2',title:'库存预警',time:'昨日 18:00',content:'一次性手套（L）当前库存 45副，低于安全库存 100副',unread:true},
+    {icon:'✅',bg:'#dcfce7',title:'借用申请已通过',time:'昨日 14:20',content:'您的借用申请 BR-0236 已通过审批，请于 2026-05-05 取用设备',unread:false},
+    {icon:'📢',bg:'#f3e8ff',title:'系统公告',time:'2026-05-08',content:'实验室安全知识培训将于 2026-05-20 举行，请各实验室人员按时参加',unread:false},
+  ];
+  $('notif-list').innerHTML=notifs.map(n=>`
+    <div class="notif-item ${n.unread?'notif-unread':''}">
+      <div class="notif-icon" style="background:${n.bg}">${n.icon}</div>
+      <div class="notif-body" style="flex:1">
+        <p>${n.title} ${n.unread?'<span style="width:7px;height:7px;border-radius:50%;background:var(--danger);display:inline-block;vertical-align:middle"></span>':''}</p>
+        <p style="font-size:12px;color:var(--text)">${n.content}</p>
+        <span>${n.time}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 日历渲染
+function renderCalendar(){
+  const days=['日','一','二','三','四','五','六'];
+  const events={11:['orange'],12:['blue','blue'],15:['orange'],18:['red'],20:['blue']};
+  let html=days.map(d=>`<div class="cal-head">${d}</div>`).join('');
+  // 2026-05-01 是周五，偏移5
+  for(let i=0;i<5;i++) html+=`<div></div>`;
+  for(let d=1;d<=31;d++){
+    const isToday=d===11;
+    const ev=events[d]||[];
+    html+=`<div class="cal-day ${isToday?'today':''} ${ev.length?'has-event':''}">
+      <span class="day-num">${d}</span>
+      <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center">${ev.map(c=>`<div class="cal-dot" style="background:var(--${c==='blue'?'primary':c==='orange'?'warning':'danger'})"></div>`).join('')}</div>
+    </div>`;
+  }
+  $('cal-grid').innerHTML=html;
+  $('today-borrows').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;border-left:3px solid var(--primary)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">HPLC EQ-0178</div>
+        <div style="font-size:11px;color:var(--text-sub)">王芳（教师） · 09:00-17:00</div>
+      </div>
+      <span class="badge badge-info">借用中</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;border-left:3px solid var(--warning)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">离心机 EQ-0023</div>
+        <div style="font-size:11px;color:var(--text-sub)">待审批 · 李明（学生）</div>
+      </div>
+      <span class="badge badge-warning">待审批</span>
+    </div>
+  `;
+}
+
+// ===========================
+// ECharts 初始化
+// ===========================
+function initCharts(){
+  // 借用趋势折线图
+  const trend = echarts.init($('chart-trend'));
+  trend.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['生物实验室','化学实验室','仪器分析室'],bottom:0},
+    grid:{left:30,right:10,top:20,bottom:40,containLabel:true},
+    xAxis:{type:'category',data:['12月','1月','2月','3月','4月','5月'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',axisLabel:{fontSize:11}},
+    series:[
+      {name:'生物实验室',type:'line',smooth:true,data:[18,22,15,28,32,20],lineStyle:{color:'#2563eb',width:2.5},areaStyle:{color:'rgba(37,99,235,.08)'},symbol:'circle',symbolSize:6,itemStyle:{color:'#2563eb'}},
+      {name:'化学实验室',type:'line',smooth:true,data:[12,16,10,20,22,15],lineStyle:{color:'#16a34a',width:2.5},areaStyle:{color:'rgba(22,163,74,.08)'},symbol:'circle',symbolSize:6,itemStyle:{color:'#16a34a'}},
+      {name:'仪器分析室',type:'line',smooth:true,data:[8,10,7,12,15,12],lineStyle:{color:'#d97706',width:2.5},areaStyle:{color:'rgba(217,119,6,.08)'},symbol:'circle',symbolSize:6,itemStyle:{color:'#d97706'}},
+    ]
+  });
+
+  // 状态饼图
+  const status = echarts.init($('chart-status'));
+  status.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}台 ({d}%)'},
+    legend:{orient:'vertical',right:0,top:'center',textStyle:{fontSize:12}},
+    series:[{
+      type:'pie',radius:['50%','78%'],center:['42%','50%'],
+      data:[
+        {value:312,name:'正常在用',itemStyle:{color:'#16a34a'}},
+        {value:47,name:'借出中',itemStyle:{color:'#2563eb'}},
+        {value:18,name:'维修中',itemStyle:{color:'#d97706'}},
+        {value:9,name:'已报废',itemStyle:{color:'#94a3b8'}},
+      ],
+      label:{show:false},emphasis:{scale:true}
+    }]
+  });
+
+  // 故障柱状图
+  const fault = echarts.init($('chart-fault'));
+  fault.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:0,right:10,top:10,bottom:20,containLabel:true},
+    xAxis:{type:'value',axisLabel:{fontSize:11}},
+    yAxis:{type:'category',data:['高压釜','气相色谱仪','离心机','超声清洗机','旋蒸仪'],axisLabel:{fontSize:11}},
+    series:[{
+      type:'bar',barMaxWidth:18,
+      data:[{value:8,itemStyle:{color:'#dc2626'}},{value:6,itemStyle:{color:'#d97706'}},{value:5,itemStyle:{color:'#2563eb'}},{value:3,itemStyle:{color:'#16a34a'}},{value:2,itemStyle:{color:'#7c3aed'}}],
+      label:{show:true,position:'right',fontSize:11}
+    }]
+  });
+
+  // 费用折线图
+  const cost = echarts.init($('chart-cost'));
+  cost.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:10,right:10,top:20,bottom:20,containLabel:true},
+    xAxis:{type:'category',data:['1月','2月','3月','4月','5月','6月'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',axisLabel:{fontSize:11}},
+    series:[{
+      type:'line',smooth:true,data:[1.2,0.8,2.1,1.5,3.2,1.8],
+      lineStyle:{color:'#d97706',width:2.5},
+      areaStyle:{color:'rgba(217,119,6,.1)'},
+      itemStyle:{color:'#d97706'},symbolSize:6
+    }]
+  });
+
+  // 资产柱状图
+  const assets = echarts.init($('chart-assets'));
+  assets.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:10,right:10,top:10,bottom:20,containLabel:true},
+    xAxis:{type:'category',data:['生物实验室','化学实验室','仪器分析室'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',axisLabel:{fontSize:11}},
+    series:[{
+      type:'bar',barWidth:36,
+      data:[{value:156,itemStyle:{color:'#2563eb',borderRadius:[6,6,0,0]}},{value:98,itemStyle:{color:'#16a34a',borderRadius:[6,6,0,0]}},{value:203,itemStyle:{color:'#7c3aed',borderRadius:[6,6,0,0]}}],
+      label:{show:true,position:'top',fontSize:12}
+    }]
+  });
+}
+
+function initMaintainCharts(){
+  const costChart = echarts.init($('chart-maintain-cost'));
+  costChart.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:10,right:10,top:20,bottom:20,containLabel:true},
+    xAxis:{type:'category',data:['1月','2月','3月','4月','5月'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',name:'元',axisLabel:{fontSize:11}},
+    series:[{type:'bar',data:[2800,1500,6200,3400,8900],barWidth:28,itemStyle:{color:'#2563eb',borderRadius:[5,5,0,0]},label:{show:true,position:'top',fontSize:11}}]
+  });
+  const typeChart = echarts.init($('chart-repair-type'));
+  typeChart.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}次 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:12}},
+    series:[{
+      type:'pie',radius:'65%',center:['50%','46%'],
+      data:[
+        {value:12,name:'电气故障',itemStyle:{color:'#dc2626'}},
+        {value:9,name:'机械磨损',itemStyle:{color:'#d97706'}},
+        {value:7,name:'传感器故障',itemStyle:{color:'#2563eb'}},
+        {value:5,name:'软件异常',itemStyle:{color:'#16a34a'}},
+        {value:3,name:'其他',itemStyle:{color:'#94a3b8'}},
+      ],
+      label:{fontSize:11},emphasis:{scale:true}
+    }]
+  });
+}
+
+// ===========================
+// 初始化全部数据
+// ===========================
+(function init(){
+  renderEquipmentTable();
+  renderDeviceCards();
+  renderPendingBorrows();
+  renderHistoryBorrows();
+  renderRepairs();
+  renderMaintainPlan();
+  renderInventory();
+  renderHazardous();
+  renderSafety();
+  renderUsers();
+  renderLogs();
+  renderNotify();
+  renderCalendar();
+  setTimeout(initCharts, 100);
+})();
+
+// 窗口缩放重绘图表
+window.addEventListener('resize', ()=>{
+  ['chart-trend','chart-status','chart-fault','chart-cost','chart-assets','chart-maintain-cost','chart-repair-type'].forEach(id=>{
+    const el = $(id);
+    if(el && el._echarts_instance_) echarts.getInstanceByDom(el)?.resize();
+  });
+});
+</script>
+</body>
+</html>
