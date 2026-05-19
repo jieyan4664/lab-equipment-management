@@ -28,7 +28,7 @@
       </el-form>
 
       <!-- 借用列表 -->
-      <el-table :data="borrowList" border v-loading="loading">
+      <el-table :data="borrowList" border v-loading="loading" width="100%">
         <el-table-column prop="deviceName" label="设备名称" width="150" />
         <el-table-column prop="deviceCode" label="设备编号" width="120" />
         <el-table-column prop="studentName" label="学生姓名" width="100" />

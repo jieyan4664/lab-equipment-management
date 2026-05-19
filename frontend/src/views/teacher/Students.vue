@@ -19,7 +19,7 @@
       </el-form>
 
       <!-- 学生列表 -->
-      <el-table :data="studentList" border v-loading="loading">
+      <el-table :data="studentList" border v-loading="loading" width="100%">
         <el-table-column prop="name" label="姓名" width="100" />
         <el-table-column prop="studentNo" label="学号" width="120" />
         <el-table-column prop="class" label="班级" width="150" />

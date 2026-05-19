@@ -156,5 +156,7 @@ const handleCommand = (command) => {
 .main {
   background-color: #f0f2f5;
   padding: 20px;
+  overflow: hidden;
+  display: block;
 }
 </style>

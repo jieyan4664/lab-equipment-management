@@ -12,7 +12,7 @@
       </template>
 
       <!-- 借用列表 -->
-      <el-table :data="borrowList" border v-loading="loading">
+      <el-table :data="borrowList" border v-loading="loading" :default-sort="{prop: 'borrowTime', order: 'descending'}" width="100%">
         <el-table-column prop="deviceName" label="设备名称" width="150" />
         <el-table-column prop="deviceCode" label="设备编号" width="120" />
         <el-table-column prop="borrowTime" label="借用时间" width="180">
@@ -27,9 +27,9 @@
         </el-table-column>
         <el-table-column label="归还状态" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 'returned'" type="success">已归还</el-tag>
-            <el-tag v-else-if="row.isOverdue" type="danger">超时{{ row.overdueDays }}天</el-tag>
-            <el-tag v-else type="warning">剩余{{ row.remainingDays }}天</el-tag>
+            <el-tag v-if="row.status === 'returned'" type="success" size="small">已归还</el-tag>
+            <el-tag v-else-if="row.isOverdue" type="danger" size="small">超时{{ row.overdueDays }}天</el-tag>
+            <el-tag v-else type="warning" size="small">剩余{{ row.remainingDays }}天</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="returnCode" label="归还凭证码" width="150" />
@@ -37,15 +37,17 @@
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'borrowed' && row.returnCode"
-              text
+              link
               type="primary"
+              size="small"
             >
               归还凭证
             </el-button>
             <el-button
               v-if="row.violation"
-              text
+              link
               type="danger"
+              size="small"
               @click="handleAppeal(row)"
             >
               申诉

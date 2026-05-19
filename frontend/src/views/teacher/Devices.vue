@@ -31,7 +31,7 @@
       </el-form>
 
       <!-- 设备表格 -->
-      <el-table :data="deviceList" border v-loading="loading" @selection-change="handleSelectionChange">
+      <el-table :data="deviceList" border v-loading="loading" @selection-change="handleSelectionChange" width="100%">
         <el-table-column type="selection" width="55" />
         <el-table-column prop="name" label="设备名称" width="150" />
         <el-table-column prop="code" label="设备编号" width="120" />
