@@ -121,7 +121,7 @@ const loadBorrows = async () => {
       size: pagination.size
     }
     const res = await studentApi.getBorrows(params)
-    borrowList.value = res.list
+    borrowList.value = res.records
     total.value = res.total
   } catch (error) {
     ElMessage.error('加载借用记录失败')
