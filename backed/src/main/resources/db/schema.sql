@@ -200,7 +200,7 @@ CREATE TABLE `repair_record` (
 DROP TABLE IF EXISTS `scrap_record`;
 CREATE TABLE `scrap_record` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `device_id` INT NOT NULL COMMENT '设备ID（外键）',
+  `device_id` INT DEFAULT NULL COMMENT '设备ID（外键，可为空表示设备已删除）',
   `scrap_date` DATE NOT NULL COMMENT '报废日期',
   `reason` ENUM('wear','damage','obsolete','other') NOT NULL COMMENT '原因：wear/damage/obsolete/other',
   `description` VARCHAR(500) DEFAULT NULL COMMENT '详细说明',

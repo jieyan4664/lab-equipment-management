@@ -1,13 +1,19 @@
 import request from '../../utils/request'
 import mock from '../../utils/mock'
 
-const USE_MOCK = true
+const USE_MOCK = false  // 关闭Mock，使用真实API
 
 export const studentApi = {
   // 获取首页数据
   getDashboard() {
     if (USE_MOCK) return mock.getStudentDashboard()
     return request.get('/student/dashboard')
+  },
+
+  // 获取设备分类列表
+  getCategories() {
+    // TODO: 实现后端API
+    return request.get('/student/categories')
   },
 
   // 获取设备列表
@@ -24,6 +30,7 @@ export const studentApi = {
 
   // 收藏/取消收藏
   toggleFavorite(data) {
+    if (USE_MOCK) return Promise.resolve({ success: true })
     return request.post('/student/favorites', data)
   },
 
