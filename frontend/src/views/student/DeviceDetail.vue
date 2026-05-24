@@ -93,7 +93,7 @@
           <div class="comment-content">{{ comment.content }}</div>
           <div class="comment-footer">
             <el-button text>
-              <el-icon><ThumbUp /></el-icon>
+              <el-icon><Star /></el-icon>
               {{ comment.likeCount }}
             </el-button>
           </div>
@@ -150,7 +150,7 @@ import { useRoute } from 'vue-router'
 import { studentApi } from '../../api/student'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
-import { ThumbUp } from '@element-plus/icons-vue'
+import { Star } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const device = ref(null)
@@ -197,8 +197,8 @@ const submitReservation = async () => {
       try {
         await studentApi.createReservation({
           deviceId: device.value.id,
-          startTime: dayjs(reservationForm.startTime).format('YYYY-MM-DD HH:mm:ss'),
-          endTime: dayjs(reservationForm.endTime).format('YYYY-MM-DD HH:mm:ss'),
+          startTime: dayjs(reservationForm.startTime).format('YYYY-MM-DDTHH:mm:ss'),
+          endTime: dayjs(reservationForm.endTime).format('YYYY-MM-DDTHH:mm:ss'),
           purpose: reservationForm.purpose
         })
         ElMessage.success('预约提交成功')

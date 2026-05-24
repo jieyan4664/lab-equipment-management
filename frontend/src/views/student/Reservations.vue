@@ -114,7 +114,7 @@ const loadReservations = async () => {
       size: pagination.size
     }
     const res = await studentApi.getReservations(params)
-    reservationList.value = res.list
+    reservationList.value = res.records
     total.value = res.total
   } catch (error) {
     ElMessage.error('加载预约列表失败')
