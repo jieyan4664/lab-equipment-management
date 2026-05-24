@@ -12,7 +12,6 @@ export const studentApi = {
 
   // 获取设备分类列表
   getCategories() {
-    // TODO: 实现后端API
     return request.get('/student/categories')
   },
 

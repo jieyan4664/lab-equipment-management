@@ -162,23 +162,13 @@ let searchTimer = null
 // 加载设备分类
 const loadCategories = async () => {
   try {
-    // TODO: 调用后端API获取分类
-    // const res = await studentApi.getCategories()
-    // categories.value = res
-    
-    // 临时使用模拟数据
-    categories.value = [
-      { id: 1, name: '显微镜', parentId: 1 },
-      { id: 2, name: '离心机', parentId: 1 },
-      { id: 3, name: '培养箱', parentId: 1 },
-      { id: 4, name: '分光光度计', parentId: 1 },
-      { id: 5, name: '反应釜', parentId: 2 },
-      { id: 6, name: '滴定仪', parentId: 2 },
-      { id: 7, name: '色谱仪', parentId: 2 },
-      { id: 8, name: 'pH计', parentId: 2 }
-    ]
+    // 调用后端API获取分类
+    const res = await studentApi.getCategories()
+    // 过滤出二级分类（子分类），排除顶级分类（生物设备、化学设备）
+    categories.value = res.filter(cat => cat.parentId !== 0)
   } catch (error) {
     console.error('加载分类失败:', error)
+    ElMessage.error('加载分类失败')
   }
 }
 
