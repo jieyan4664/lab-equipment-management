@@ -526,9 +526,28 @@ export default {
     const page = params.page || 1
     const size = params.size || 10
     
+    // 筛选数据
+    let filteredDevices = mockDevices
+    
+    // 关键词筛选（设备名称或编号）
+    if (params.keyword && params.keyword.trim()) {
+      const keyword = params.keyword.toLowerCase()
+      filteredDevices = filteredDevices.filter(device => 
+        device.name.toLowerCase().includes(keyword) || 
+        device.code.toLowerCase().includes(keyword)
+      )
+    }
+    
+    // 状态筛选
+    if (params.status && params.status.trim()) {
+      filteredDevices = filteredDevices.filter(device => 
+        device.status === params.status
+      )
+    }
+    
     return {
-      total: mockDevices.length,
-      list: mockDevices.slice((page - 1) * size, page * size)
+      total: filteredDevices.length,
+      list: filteredDevices.slice((page - 1) * size, page * size)
     }
   },
 

@@ -1,297 +1,262 @@
-# 公告筛选功能修复说明
+# 设备管理筛选功能修复说明
 
-## 🐛 问题描述
+## 🔍 问题诊断
 
-**现象**：
-- ✅ 公告列表正常显示
-- ✅ 已读/未读状态正确显示
-- ❌ 点击"全部/未读/已读"筛选按钮后，数据没有变化
+### 问题描述
+在管理端设备管理页面，通过关键字搜索或状态筛选后，数据显示没有变化。
 
-**原因**：
-前端 `filterType` 使用了 `v-model` 绑定，但**没有监听它的变化**。当用户点击筛选按钮时，虽然 `filterType` 的值改变了，但没有触发 `loadAnnouncements()` 重新加载数据。
+### 根本原因
+前端配置 `USE_MOCK = true`，使用的是Mock数据。而Mock数据的 `getTeacherDevices` 方法**没有处理筛选参数**（keyword和status），只是简单地返回所有设备的分页数据。
 
 ---
 
-## ✅ 修复方案
+## ✅ 解决方案
 
-### 修改文件：Announcements.vue
+### 方案1：修复Mock数据（已完成）✅
 
-**位置**：`frontend/src/views/student/Announcements.vue`
+**修改文件：** `frontend/src/utils/mock.js`
 
-**修改内容**：添加 `watch` 监听 `filterType` 变化
-
+**修改内容：**
 ```javascript
-// 监听筛选类型变化
-watch(filterType, () => {
-  currentPage.value = 1  // 重置到第一页
-  loadAnnouncements()
-})
-```
-
-**完整代码**：
-```javascript
-// 页面首次加载
-onMounted(() => {
-  loadAnnouncements()
-})
-
-// 监听筛选类型变化
-watch(filterType, () => {
-  currentPage.value = 1  // 重置到第一页
-  loadAnnouncements()
-})
-
-// 监听路由query参数变化（从详情页返回时会带上refresh参数）
-watch(() => route.query.refresh, () => {
-  if (route.query.refresh) {
-    loadAnnouncements()
+async getTeacherDevices(params) {
+  await delay(300)
+  const page = params.page || 1
+  const size = params.size || 10
+  
+  // 筛选数据
+  let filteredDevices = mockDevices
+  
+  // 关键词筛选（设备名称或编号）
+  if (params.keyword && params.keyword.trim()) {
+    const keyword = params.keyword.toLowerCase()
+    filteredDevices = filteredDevices.filter(device => 
+      device.name.toLowerCase().includes(keyword) || 
+      device.code.toLowerCase().includes(keyword)
+    )
   }
-})
+  
+  // 状态筛选
+  if (params.status && params.status.trim()) {
+    filteredDevices = filteredDevices.filter(device => 
+      device.status === params.status
+    )
+  }
+  
+  return {
+    total: filteredDevices.length,
+    list: filteredDevices.slice((page - 1) * size, page * size)
+  }
+}
 ```
+
+**优点：**
+- ✅ 立即生效，无需重启后端
+- ✅ 可以快速测试前端筛选逻辑
+- ✅ 适合开发阶段调试
+
+**缺点：**
+- ⚠️ 数据是静态的，无法测试真实的数据库查询
+- ⚠️ 不支持复杂的业务逻辑（如唯一性校验）
 
 ---
 
-## 🎯 工作原理
+### 方案2：启用真实API（推荐）🚀
 
-### 筛选流程
+**步骤1：修改前端配置**
 
+编辑 `frontend/src/api/teacher/index.js`：
+
+```javascript
+const USE_MOCK = false  // 改为false启用真实API
 ```
-用户点击"未读"按钮
-    ↓
-v-model 自动更新 filterType.value = "unread"
-    ↓
-watch 监听到 filterType 变化
-    ↓
-重置 currentPage = 1（回到第一页）
-    ↓
-调用 loadAnnouncements()
-    ↓
-发送请求：GET /api/v1/student/announcements?filterType=unread&page=1&size=10
-    ↓
-后端执行筛选逻辑：
-  1. 查询符合条件的公告列表
-  2. 获取学生已读ID集合
-  3. 设置每条公告的 isRead 字段
-  4. 筛选：announcementList.filter(a => !a.isRead)  // 只保留未读
-    ↓
-返回筛选后的数据
-    ↓
-前端渲染列表，只显示未读公告 ✅
+
+**步骤2：确保后端服务运行**
+
+```bash
+cd backed
+mvn spring-boot:run
 ```
+
+**步骤3：测试功能**
+
+访问 http://localhost:3000/teacher/devices
+
+**优点：**
+- ✅ 使用真实的数据库数据
+- ✅ 完整的业务逻辑（唯一性校验、事务控制等）
+- ✅ 可以测试所有CRUD操作
+
+**缺点：**
+- ⚠️ 需要确保数据库中有测试数据
+- ⚠️ 需要后端服务正常运行
 
 ---
 
 ## 🧪 测试步骤
 
-### 1. 刷新浏览器
+### 测试Mock模式（当前）
 
-确保前端代码已重新加载：
+1. **刷新页面**
+   - 由于修改了Mock代码，刷新浏览器即可生效
+
+2. **测试关键词搜索**
+   - 在搜索框输入"显微镜"
+   - 点击"搜索"按钮
+   - ✅ 应该只显示包含"显微镜"的设备
+
+3. **测试设备编号搜索**
+   - 在搜索框输入"DEV-001"
+   - 点击"搜索"按钮
+   - ✅ 应该只显示编号为"DEV-001"的设备
+
+4. **测试状态筛选**
+   - 选择状态"可借用"
+   - 点击"搜索"按钮
+   - ✅ 应该只显示状态为"available"的设备
+
+5. **测试组合筛选**
+   - 输入关键词"显微镜"
+   - 选择状态"可借用"
+   - 点击"搜索"按钮
+   - ✅ 应该只显示名称包含"显微镜"且状态为"可借用"的设备
+
+6. **测试重置功能**
+   - 点击"重置"按钮
+   - ✅ 应该清除所有筛选条件，显示全部设备
+
+---
+
+## 📊 后端实现检查清单
+
+后端设备管理功能已完整实现，包括：
+
+### ✅ 已实现的功能
+
+1. **获取设备列表** `GET /api/v1/teacher/devices`
+   - ✅ 分页查询
+   - ✅ 关键词搜索（设备名称/编号）
+   - ✅ 状态筛选
+   - ✅ 关联查询分类名称
+
+2. **添加设备** `POST /api/v1/teacher/devices`
+   - ✅ 唯一性校验（设备编号）
+   - ✅ 默认状态设置
+
+3. **更新设备** `PUT /api/v1/teacher/devices/{id}`
+   - ✅ 存在性校验
+   - ✅ 编号唯一性校验
+
+4. **删除设备** `DELETE /api/v1/teacher/devices/{id}`
+   - ✅ 业务规则校验（借用中的设备不能删除）
+
+5. **修改设备状态** `PUT /api/v1/teacher/devices/{id}/status`
+   - ✅ 状态值校验（repair/scrap）
+   - ✅ 报废时清空借用人信息
+
+6. **生成二维码** `POST /api/v1/teacher/devices/qr-codes`
+   - ✅ 批量验证设备ID
+   - ⚠️ 模拟实现（返回PDF URL）
+
+### 📁 相关文件
+
+- Controller: `backed/src/main/java/com/lab/backed/controller/TeacherDeviceController.java`
+- Service: `backed/src/main/java/com/lab/backed/service/TeacherDeviceService.java`
+- ServiceImpl: `backed/src/main/java/com/lab/backed/service/impl/TeacherDeviceServiceImpl.java`
+- ExceptionHandler: `backed/src/main/java/com/lab/backed/config/GlobalExceptionHandler.java`
+
+---
+
+## 🔄 切换到真实API的步骤
+
+当您准备好切换到真实API时：
+
+### 1. 修改前端配置
+
+```javascript
+// frontend/src/api/teacher/index.js
+const USE_MOCK = false  // 从true改为false
+```
+
+### 2. 确保数据库有测试数据
+
+执行以下SQL插入测试数据：
+
+```sql
+-- 插入设备分类
+INSERT INTO device_category (name, parent_id, lab_type, sort_order) VALUES
+('生物设备', 0, 'bio', 1),
+('化学设备', 0, 'chem', 2);
+
+-- 插入测试设备
+INSERT INTO device (code, name, category_id, brand, model, spec, location, purchase_date, warranty_date, status) VALUES
+('DEV-001', '光学显微镜', 1, '奥林巴斯', 'CX23', '40x-1000x', 'A栋-201-1号柜', '2024-03-15', '2026-03-15', 'available'),
+('DEV-002', '电子天平', 2, '梅特勒', 'ME204E', '0.1mg', 'B栋-301-2号柜', '2024-05-20', '2026-05-20', 'available'),
+('DEV-003', '离心机', 1, 'Eppendorf', '5424R', '15000rpm', 'A栋-202-3号柜', '2024-06-01', '2026-06-01', 'borrowed'),
+('DEV-004', 'pH计', 2, '雷磁', 'PHS-3C', '0.01pH', 'B栋-302-4号柜', '2024-07-10', '2026-07-10', 'repair'),
+('DEV-005', '分光光度计', 2, '岛津', 'UV-1800', '190-1100nm', 'B栋-303-5号柜', '2024-08-15', '2026-08-15', 'available');
+```
+
+### 3. 重启前端服务
 
 ```bash
-# 如果前端服务正在运行，直接刷新浏览器即可
-# 如果没有运行，启动前端服务
 cd frontend
 npm run dev
 ```
 
-访问：http://localhost:3000/student/announcements
+### 4. 测试真实API
+
+- 刷新浏览器
+- 尝试搜索和筛选
+- 尝试添加、编辑、删除设备
+- 查看浏览器开发者工具的Network标签，确认请求发送到后端
 
 ---
 
-### 2. 测试"全部"筛选
+## 🐛 常见问题
 
-**操作**：
-1. 点击"全部"按钮
-2. 观察列表
+### Q1: 修改Mock后为什么还是没有效果？
 
-**预期结果**：
-- ✅ 显示所有公告（包括已读和未读）
-- ✅ 总数显示正确（例如：共5条）
+**A:** 请确保：
+1. 保存了文件
+2. 刷新了浏览器（Ctrl+F5 强制刷新）
+3. 检查浏览器控制台是否有错误
 
----
+### Q2: 切换到真实API后出现404错误？
 
-### 3. 测试"未读"筛选
+**A:** 请检查：
+1. 后端服务是否正常运行
+2. 后端端口是否正确（默认8080）
+3. 前端代理配置是否正确（vite.config.js）
 
-**操作**：
-1. 点击"未读"按钮
-2. 观察列表
+### Q3: 搜索后显示"加载设备列表失败"？
 
-**预期结果**：
-- ✅ 只显示未读公告（蓝色铃铛图标）
-- ✅ 总数减少（例如：共3条）
-- ✅ 已读公告不显示
+**A:** 可能的原因：
+1. 后端服务未启动
+2. 数据库连接失败
+3. 接口路径不匹配
 
----
+检查浏览器控制台的错误信息，查看具体的错误原因。
 
-### 4. 测试"已读"筛选
+### Q4: 如何查看Mock数据和真实API的区别？
 
-**操作**：
-1. 点击"已读"按钮
-2. 观察列表
-
-**预期结果**：
-- ✅ 只显示已读公告（灰色铃铛图标）
-- ✅ 总数减少（例如：共2条）
-- ✅ 未读公告不显示
+**A:** 打开浏览器开发者工具（F12）：
+- Mock模式：不会看到网络请求
+- 真实API：可以看到 `/api/v1/teacher/devices` 的请求
 
 ---
 
-### 5. 测试分页重置
+## 📝 总结
 
-**操作**：
-1. 在"全部"模式下，翻到第2页
-2. 点击"未读"或"已读"按钮
-3. 观察页码
+✅ **已完成：**
+1. 修复Mock数据的筛选逻辑
+2. 关键词搜索支持（设备名称/编号）
+3. 状态筛选支持
+4. 组合筛选支持
 
-**预期结果**：
-- ✅ 自动跳回第1页
-- ✅ 显示筛选后的数据
+🚀 **下一步建议：**
+1. 先测试Mock模式，确保前端筛选逻辑正确
+2. 准备数据库测试数据
+3. 切换到真实API（USE_MOCK = false）
+4. 测试完整的CRUD功能
 
----
-
-### 6. 测试查看详情后返回
-
-**操作**：
-1. 点击某条公告查看详情
-2. 点击"返回"按钮
-3. 观察列表是否刷新
-
-**预期结果**：
-- ✅ 列表自动刷新
-- ✅ 该公告状态变为"已读"
-
----
-
-## 🔍 调试技巧
-
-### 前端调试
-
-在浏览器控制台查看网络请求：
-
-```javascript
-// 打开浏览器开发者工具 → Network标签
-// 点击筛选按钮，观察请求参数
-
-// 应该看到：
-GET /api/v1/student/announcements?filterType=unread&page=1&size=10
-GET /api/v1/student/announcements?filterType=read&page=1&size=10
-GET /api/v1/student/announcements?filterType=all&page=1&size=10
-```
-
-### 后端调试
-
-在后端日志中查看SQL执行：
-
-```yaml
-# application.yml 中添加
-logging:
-  level:
-    com.lab.backed.mapper: DEBUG
-```
-
-应该看到类似这样的SQL：
-```sql
-SELECT * FROM announcement WHERE status = 1 ...
-SELECT * FROM announcement_read WHERE student_id = 1 AND is_read = 1
-```
-
----
-
-## 📊 后端筛选逻辑说明
-
-### AnnouncementServiceImpl.java
-
-**核心代码**（第63-72行）：
-
-```java
-// 根据筛选类型过滤
-if ("unread".equals(filterType)) {
-    announcementList = announcementList.stream()
-        .filter(a -> !(Boolean) a.get("isRead"))  // 只保留未读
-        .collect(Collectors.toList());
-} else if ("read".equals(filterType)) {
-    announcementList = announcementList.stream()
-        .filter(a -> (Boolean) a.get("isRead"))   // 只保留已读
-        .collect(Collectors.toList());
-}
-// 如果是 "all"，不做任何过滤
-```
-
-**工作流程**：
-1. 先查询所有符合条件的公告（按实验室类型、置顶等）
-2. 获取学生的已读ID集合
-3. 为每条公告设置 `isRead` 字段
-4. 根据 `filterType` 进行内存筛选
-5. 构建分页对象返回
-
----
-
-## ⚠️ 注意事项
-
-### 1. 分页总数
-
-筛选后的 `total` 应该是筛选后的数量，而不是原始数量。
-
-**当前实现**（第76行）：
-```java
-returnPage.setTotal(announcementList.size());  // ✅ 使用筛选后的总数
-```
-
-### 2. 页码重置
-
-切换筛选条件时，应该重置到第1页，避免页码超出范围。
-
-**当前实现**：
-```javascript
-watch(filterType, () => {
-  currentPage.value = 1  // ✅ 重置到第一页
-  loadAnnouncements()
-})
-```
-
-### 3. 性能考虑
-
-当前实现在内存中进行筛选，适用于数据量较小的场景。如果公告数量很大（>1000条），建议优化为数据库层面筛选：
-
-```java
-// 优化方案：直接在SQL中筛选
-if ("unread".equals(filterType)) {
-    // LEFT JOIN announcement_read，筛选 is_read = 0 的记录
-} else if ("read".equals(filterType)) {
-    // INNER JOIN announcement_read，筛选 is_read = 1 的记录
-}
-```
-
----
-
-## ✅ 完成检查清单
-
-- [x] 前端添加 watch 监听 filterType 变化
-- [x] 切换筛选条件时重置页码
-- [x] 后端筛选逻辑正确实现
-- [x] 分页总数反映筛选后的数量
-- [x] 测试"全部"筛选
-- [x] 测试"未读"筛选
-- [x] 测试"已读"筛选
-- [x] 测试分页重置
-- [x] 测试查看详情后返回
-
----
-
-## 🎉 总结
-
-通过本次修复，公告筛选功能已完全正常工作：
-
-✅ **全部**：显示所有公告  
-✅ **未读**：只显示未读公告  
-✅ **已读**：只显示已读公告  
-✅ **分页重置**：切换筛选时自动回到第1页  
-✅ **实时刷新**：从详情页返回后自动更新状态  
-
-现在用户可以方便地筛选和管理公告了！
-
----
-
-**修复日期**：2026-05-19  
-**修复人员**：AI Assistant  
-**影响范围**：学生端公告列表筛选功能
+现在请刷新浏览器，测试搜索和筛选功能！🎉
