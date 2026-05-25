@@ -58,19 +58,16 @@ export const teacherApi = {
 
   // 借用登记
   createBorrow(data) {
-    if (USE_MOCK) return mock.createBorrow(data)
     return request.post('/teacher/borrows', data)
   },
 
   // 归还登记
   returnBorrow(data) {
-    if (USE_MOCK) return mock.returnBorrow(data)
     return request.post('/teacher/borrows/return', data)
   },
 
   // 获取当前借用列表
   getCurrentBorrows(params) {
-    if (USE_MOCK) return mock.getCurrentBorrows(params)
     return request.get('/teacher/borrows/current', { params })
   },
 

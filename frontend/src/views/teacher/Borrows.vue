@@ -24,6 +24,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadBorrows">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -171,6 +172,12 @@ const loadBorrows = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleReset = () => {
+  keyword.value = ''
+  isOverdue.value = null
+  loadBorrows()
 }
 
 const showBorrowDialog = () => {
