@@ -42,7 +42,7 @@
       <template #header>
         <div class="card-header">
           <span>最新公告</span>
-          <el-button text>查看全部</el-button>
+          <el-button text @click="$router.push('/student/announcements')">查看全部</el-button>
         </div>
       </template>
       <el-empty v-if="!dashboardData.announcements?.length" description="暂无公告" />

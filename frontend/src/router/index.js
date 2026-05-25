@@ -52,6 +52,18 @@ const routes = [
         name: 'StudentProfile',
         component: () => import('../views/student/Profile.vue'),
         meta: { title: '个人中心' }
+      },
+      {
+        path: 'announcements',
+        name: 'StudentAnnouncements',
+        component: () => import('../views/student/Announcements.vue'),
+        meta: { title: '公告列表' }
+      },
+      {
+        path: 'announcements/:id',
+        name: 'StudentAnnouncementDetail',
+        component: () => import('../views/student/AnnouncementDetail.vue'),
+        meta: { title: '公告详情' }
       }
     ]
   },

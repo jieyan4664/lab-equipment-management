@@ -80,5 +80,20 @@ export const studentApi = {
   // 更新个人资料
   updateProfile(data) {
     return request.put('/student/profile', data)
+  },
+
+  // 获取公告列表
+  getAnnouncements(params) {
+    return request.get('/student/announcements', { params })
+  },
+
+  // 获取公告详情
+  getAnnouncementDetail(id) {
+    return request.get(`/student/announcements/${id}`)
+  },
+
+  // 标记公告已读
+  markAnnouncementRead(id) {
+    return request.put(`/student/announcements/${id}/read`)
   }
 }
