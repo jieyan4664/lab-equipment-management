@@ -22,6 +22,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadReservations">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -122,6 +123,13 @@ const loadReservations = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleReset = () => {
+  filterForm.studentName = ''
+  filterForm.deviceName = ''
+  pagination.page = 1
+  loadReservations()
 }
 
 const handleAudit = async (row, result) => {

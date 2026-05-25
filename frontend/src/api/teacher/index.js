@@ -43,13 +43,11 @@ export const teacherApi = {
 
   // 获取预约列表
   getReservations(params) {
-    if (USE_MOCK) return mock.getTeacherReservations(params)
     return request.get('/teacher/reservations', { params })
   },
 
   // 审核预约
   auditReservation(id, data) {
-    if (USE_MOCK) return mock.auditReservation(id, data)
     return request.put(`/teacher/reservations/${id}/audit`, data)
   },
 
