@@ -12,7 +12,6 @@ export const teacherApi = {
 
   // 获取设备列表
   getDevices(params) {
-    if (USE_MOCK) return mock.getTeacherDevices(params)
     return request.get('/teacher/devices', { params })
   },
 
@@ -78,7 +77,6 @@ export const teacherApi = {
 
   // 获取学生列表
   getStudents(params) {
-    if (USE_MOCK) return mock.getStudents(params)
     return request.get('/teacher/students', { params })
   },
 

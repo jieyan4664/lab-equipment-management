@@ -15,6 +15,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadStudents">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -159,6 +160,13 @@ const handleToggleAccess = async (row) => {
       ElMessage.error('操作失败')
     }
   }
+}
+
+const handleReset = () => {
+  filterForm.class = ''
+  filterForm.keyword = ''
+  pagination.page = 1
+  loadStudents()
 }
 
 onMounted(() => {

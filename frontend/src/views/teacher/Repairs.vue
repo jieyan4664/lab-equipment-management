@@ -33,9 +33,13 @@
     <el-dialog v-model="repairDialogVisible" title="登记维修" width="600px">
       <el-form :model="repairForm" label-width="100px">
         <el-form-item label="设备" required>
-          <el-select v-model="repairForm.deviceId" placeholder="请选择设备" style="width: 100%">
-            <el-option label="显微镜-001" :value="1" />
-            <el-option label="离心机-002" :value="2" />
+          <el-select v-model="repairForm.deviceId" placeholder="请选择设备" style="width: 100%" v-loading="deviceLoading">
+            <el-option 
+              v-for="device in deviceList" 
+              :key="device.id" 
+              :label="`${device.name}-${device.code}`" 
+              :value="device.id" 
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="维修日期" required>
@@ -73,9 +77,11 @@ import { ElMessage } from 'element-plus'
 const loading = ref(false)
 const repairList = ref([])
 const repairDialogVisible = ref(false)
+const deviceLoading = ref(false)
+const deviceList = ref([])
 
 const repairForm = reactive({
-  deviceId: '',
+  deviceId: null,
   repairDate: '',
   repairPerson: '',
   cost: 0,
@@ -95,23 +101,85 @@ const loadRepairs = async () => {
   }
 }
 
+// 加载设备列表
+const loadDevices = async () => {
+  deviceLoading.value = true
+  try {
+    const res = await teacherApi.getDevices({ page: 1, size: 100 })
+    deviceList.value = res.list || []
+  } catch (error) {
+    console.error('加载设备列表失败:', error)
+    ElMessage.error('加载设备列表失败')
+  } finally {
+    deviceLoading.value = false
+  }
+}
+
 const showRepairDialog = () => {
+  // 如果设备列表为空，先加载
+  if (deviceList.value.length === 0) {
+    loadDevices()
+  }
   repairDialogVisible.value = true
 }
 
 const submitRepair = async () => {
+  // 表单验证
+  if (!repairForm.deviceId) {
+    ElMessage.warning('请选择设备')
+    return
+  }
+  if (!repairForm.repairDate) {
+    ElMessage.warning('请选择维修日期')
+    return
+  }
+  if (!repairForm.repairPerson) {
+    ElMessage.warning('请输入维修人员')
+    return
+  }
+  
   try {
-    await teacherApi.createRepair(repairForm)
+    // 格式化日期为字符串
+    const submitData = {
+      ...repairForm,
+      repairDate: formatDate(repairForm.repairDate)
+    }
+    
+    await teacherApi.createRepair(submitData)
     ElMessage.success('登记成功')
     repairDialogVisible.value = false
+    // 重置表单
+    resetForm()
     loadRepairs()
   } catch (error) {
-    ElMessage.error('操作失败')
+    console.error('登记维修失败:', error)
+    ElMessage.error(error.message || '操作失败')
   }
+}
+
+// 格式化日期
+const formatDate = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 重置表单
+const resetForm = () => {
+  repairForm.deviceId = null
+  repairForm.repairDate = ''
+  repairForm.repairPerson = ''
+  repairForm.cost = 0
+  repairForm.result = 'repaired'
+  repairForm.description = ''
 }
 
 onMounted(() => {
   loadRepairs()
+  loadDevices() // 页面加载时加载设备列表
 })
 </script>
 
