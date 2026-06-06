@@ -11,7 +11,11 @@
       <!-- 公告列表 -->
       <el-table :data="announcementList" border v-loading="loading">
         <el-table-column prop="title" label="标题" width="200" />
-        <el-table-column prop="targetType" label="发布范围" width="120" />
+        <el-table-column label="发布范围" width="120">
+          <template #default="{ row }">
+            {{ getTargetTypeText(row.targetType) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="isPinned" label="置顶" width="80">
           <template #default="{ row }">
             <el-tag v-if="row.isPinned" type="danger">是</el-tag>
@@ -26,8 +30,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button text type="primary" @click="handleView(row)">查看</el-button>
             <el-button text type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -61,6 +66,29 @@
         <el-button type="primary" @click="submitAnnouncement">发布</el-button>
       </template>
     </el-dialog>
+
+    <!-- 查看公告对话框 -->
+    <el-dialog v-model="viewDialogVisible" title="查看公告" width="700px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="标题">{{ currentAnnouncement.title }}</el-descriptions-item>
+        <el-descriptions-item label="发布范围">
+          {{ getTargetTypeText(currentAnnouncement.targetType) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="置顶">
+          <el-tag v-if="currentAnnouncement.isPinned" type="danger">是</el-tag>
+          <span v-else>否</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="发布时间">
+          {{ currentAnnouncement.publishTime }}
+        </el-descriptions-item>
+        <el-descriptions-item label="内容">
+          <div v-html="currentAnnouncement.content" class="announcement-content" />
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="viewDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -72,6 +100,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const loading = ref(false)
 const announcementList = ref([])
 const dialogVisible = ref(false)
+const viewDialogVisible = ref(false)
+const currentAnnouncement = reactive({
+  title: '',
+  content: '',
+  targetType: '',
+  isPinned: false,
+  publishTime: ''
+})
 
 const announcementForm = reactive({
   title: '',
@@ -79,6 +115,18 @@ const announcementForm = reactive({
   targetType: 'all',
   isPinned: false
 })
+
+// 获取发布范围文本
+const getTargetTypeText = (type) => {
+  const typeMap = {
+    'all': '全部',
+    'bio': '生物实验室',
+    'chem': '化学实验室',
+    'class': '指定班级',
+    'student': '指定学生'
+  }
+  return typeMap[type] || type
+}
 
 const loadAnnouncements = async () => {
   loading.value = true
@@ -105,6 +153,15 @@ const submitAnnouncement = async () => {
   } catch (error) {
     ElMessage.error('发布失败')
   }
+}
+
+const handleView = (row) => {
+  currentAnnouncement.title = row.title
+  currentAnnouncement.content = row.content
+  currentAnnouncement.targetType = row.targetType
+  currentAnnouncement.isPinned = row.isPinned
+  currentAnnouncement.publishTime = row.publishTime
+  viewDialogVisible.value = true
 }
 
 const handleDelete = async (row) => {
@@ -135,5 +192,37 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* 公告内容样式 */
+.announcement-content {
+  line-height: 1.8;
+  word-wrap: break-word;
+}
+
+.announcement-content :deep(p) {
+  margin: 0.5em 0;
+  line-height: 1.8;
+}
+
+.announcement-content :deep(ul),
+.announcement-content :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.announcement-content :deep(li) {
+  margin: 0.3em 0;
+  line-height: 1.6;
+}
+
+.announcement-content :deep(strong),
+.announcement-content :deep(b) {
+  font-weight: 600;
+}
+
+.announcement-content :deep(em),
+.announcement-content :deep(i) {
+  font-style: italic;
 }
 </style>
