@@ -75,50 +75,6 @@
           </el-form>
         </el-card>
       </el-tab-pane>
-
-      <!-- 角色权限 -->
-      <el-tab-pane label="角色权限" name="rolePermissions">
-        <el-card>
-          <div v-for="(role, index) in settings.rolePermissions" :key="index" class="role-item">
-            <el-form :model="role" label-width="120px">
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="角色名称">
-                    <el-input v-model="role.roleName" />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="角色编码">
-                    <el-input v-model="role.roleCode" />
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="角色描述">
-                <el-input v-model="role.description" type="textarea" :rows="2" />
-              </el-form-item>
-              <el-form-item label="权限模块">
-                <el-checkbox-group v-model="role.permissions">
-                  <el-checkbox label="dashboard">管理仪表盘</el-checkbox>
-                  <el-checkbox label="devices">设备管理</el-checkbox>
-                  <el-checkbox label="reservations">预约审核</el-checkbox>
-                  <el-checkbox label="borrows">借用归还</el-checkbox>
-                  <el-checkbox label="students">学生管理</el-checkbox>
-                  <el-checkbox label="repairs">维修报废</el-checkbox>
-                  <el-checkbox label="announcements">公告管理</el-checkbox>
-                  <el-checkbox label="statistics">数据统计</el-checkbox>
-                  <el-checkbox label="settings">系统设置</el-checkbox>
-                </el-checkbox-group>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="danger" size="small" @click="deleteRole(index)" :disabled="settings.rolePermissions.length <= 1">删除</el-button>
-              </el-form-item>
-            </el-form>
-            <el-divider v-if="index < settings.rolePermissions.length - 1" />
-          </div>
-          <el-button type="primary" @click="addRole">添加角色</el-button>
-          <el-button type="primary" @click="saveSettings" style="margin-left: 10px">保存所有设置</el-button>
-        </el-card>
-      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -148,21 +104,7 @@ const settings = reactive({
     remindMethods: ['sms', 'inapp'],
     remindInterval: 'daily',
     advanceRemindHours: 2
-  },
-  rolePermissions: [
-    {
-      roleName: '普通老师',
-      roleCode: 'teacher',
-      description: '普通老师角色，拥有基本管理权限',
-      permissions: ['dashboard', 'devices', 'reservations', 'borrows', 'students', 'repairs', 'announcements', 'statistics', 'settings']
-    },
-    {
-      roleName: '管理员',
-      roleCode: 'admin',
-      description: '管理员角色，拥有全部管理权限',
-      permissions: ['dashboard', 'devices', 'reservations', 'borrows', 'students', 'repairs', 'announcements', 'statistics', 'settings']
-    }
-  ]
+  }
 })
 
 const loadSettings = async () => {
@@ -176,30 +118,11 @@ const loadSettings = async () => {
 
 const saveSettings = async () => {
   try {
-    const payload = {
-      labInfo: settings.labInfo,
-      reservationRules: settings.reservationRules,
-      reminderSettings: settings.reminderSettings,
-      rolePermissions: settings.rolePermissions
-    }
-    await teacherApi.updateSettings(payload)
+    await teacherApi.updateSettings(settings)
     ElMessage.success('保存成功')
   } catch (error) {
     ElMessage.error('保存失败')
   }
-}
-
-const addRole = () => {
-  settings.rolePermissions.push({
-    roleName: '',
-    roleCode: '',
-    description: '',
-    permissions: []
-  })
-}
-
-const deleteRole = (index) => {
-  settings.rolePermissions.splice(index, 1)
 }
 
 onMounted(() => {

@@ -649,28 +649,6 @@ export default {
     }
   },
 
-  // 老师端 - 生成报表
-  async generateReport(data) {
-    await delay(1000)
-    const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14)
-    
-    // 根据格式确定文件扩展名
-    let fileExtension = 'csv'
-    if (data.format === 'excel') {
-      fileExtension = 'xlsx'
-    } else if (data.format === 'pdf') {
-      fileExtension = 'html' // PDF暂时用HTML代替
-    }
-    
-    const fileName = `report_${data.reportType}_${timestamp}.${fileExtension}`
-    
-    return {
-      filePath: `/tmp/${fileName}`,
-      fileName: fileName,
-      downloadUrl: `/api/v1/teacher/reports/download?path=%2Ftmp%2F${fileName}`
-    }
-  },
-
   // 获取未读消息数量
   async getUnreadCount() {
     await delay(200)

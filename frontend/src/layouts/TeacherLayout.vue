@@ -24,7 +24,7 @@
       </div>
     </el-header>
     
-    <el-container class="body-container">
+    <el-container>
       <el-aside width="200px" class="aside">
         <el-menu
           :default-active="activeMenu"
@@ -151,18 +151,12 @@ const handleCommand = (command) => {
 
 .aside {
   background-color: #304156;
-  height: 100%;
-  overflow-y: auto;
 }
 
 .main {
   background-color: #f0f2f5;
   padding: 20px;
-  overflow-y: auto;
-}
-
-.body-container {
-  flex: 1;
   overflow: hidden;
+  display: block;
 }
 </style>
