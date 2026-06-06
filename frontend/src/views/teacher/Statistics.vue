@@ -55,16 +55,17 @@
           </template>
           <el-form :inline="true" :model="reportForm">
             <el-form-item label="报表类型">
-              <el-select v-model="reportForm.reportType" placeholder="请选择">
+              <el-select v-model="reportForm.reportType" placeholder="请选择" clearable style="width: 150px">
                 <el-option label="月报" value="monthly" />
                 <el-option label="学期报" value="semester" />
                 <el-option label="年报" value="yearly" />
               </el-select>
             </el-form-item>
             <el-form-item label="导出格式">
-              <el-select v-model="reportForm.format" placeholder="请选择">
+              <el-select v-model="reportForm.format" placeholder="请选择" clearable style="width: 180px">
                 <el-option label="Excel" value="excel" />
                 <el-option label="PDF" value="pdf" />
+                <el-option label="CSV" value="csv" />
               </el-select>
             </el-form-item>
             <el-form-item>
@@ -201,11 +202,44 @@ const initCharts = () => {
 
 const generateReport = async () => {
   try {
+    // 验证参数
+    if (!reportForm.reportType) {
+      ElMessage.warning('请选择报表类型')
+      return
+    }
+    if (!reportForm.format) {
+      ElMessage.warning('请选择导出格式')
+      return
+    }
+    
     const res = await teacherApi.generateReport(reportForm)
+    console.log('生成报表响应:', res)
+    
     ElMessage.success('报表生成成功')
-    // 可以下载文件
+    
+    // 下载文件 - 响应拦截器已返回 res.data，所以这里 res 就是数据对象
+    if (res && res.downloadUrl) {
+      // 使用完整URL（包含baseURL）
+      const downloadUrl = window.location.origin + res.downloadUrl
+      console.log('下载地址:', downloadUrl)
+      
+      // 对于HTML格式，在新窗口打开；其他格式直接下载
+      if (res.fileName && res.fileName.endsWith('.html')) {
+        window.open(downloadUrl, '_blank')
+      } else {
+        // 创建隐藏的a标签进行下载
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = res.fileName || 'report.csv'
+        link.click()
+      }
+    } else {
+      console.warn('未找到下载URL', res)
+      ElMessage.warning('报表生成成功，但未获取到下载链接')
+    }
   } catch (error) {
-    ElMessage.error('生成失败')
+    console.error('生成报表失败:', error)
+    ElMessage.error('生成失败: ' + (error.message || '未知错误'))
   }
 }
 

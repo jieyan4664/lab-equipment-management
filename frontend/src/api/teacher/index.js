@@ -123,6 +123,7 @@ export const teacherApi = {
 
   // 生成报表
   generateReport(data) {
+    // 报表功能不使用mock，直接调用后端
     return request.post('/teacher/reports/generate', data)
   },
 
